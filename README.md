@@ -36,7 +36,7 @@ Kodeord: kodeord123
 ```text
 Bruger i frontend
   -> frontend/lib/api.ts
-  -> Flask endpoint i backend/routes/
+  -> Flask endpoints i backend/app.py
   -> database.py
   -> MariaDB tabeller i database/init.sql
   -> JSON tilbage til frontend
@@ -60,10 +60,9 @@ GET  /api/dashboard       Henter tal til dashboardet
 
 ```text
 backend/
-  app.py              Flask app og fejlhåndtering
+  app.py              Flask app, endpoints og fejlhåndtering
   database.py         Små databasefunktioner
   validators.py       Input-validering
-  routes/             API-ruter opdelt efter ansvar
 
 database/
   init.sql            Tabeller og testdata
@@ -77,7 +76,8 @@ frontend/
 
 ## Hvorfor denne version er simplere
 
-- Backend er delt op i små route-filer i stedet for en meget lang fil.
+- Backendens endpoints ligger samlet i `backend/app.py`, så flowet er nemt at fremlægge.
+- Databasekode og validering ligger stadig i egne filer, så `app.py` ikke bliver unødigt rodet.
 - Frontend kalder alle endpoints fra `frontend/lib/api.ts`.
 - Endpoint-navne matcher brugerflowet: opret bruger, login, profil og vaskehistorik.
 - Databasen har kun de tabeller, som appen faktisk bruger.
