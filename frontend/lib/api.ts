@@ -12,6 +12,16 @@ import type {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5001";
 
+const ENDPOINTS = {
+  dashboard: "/api/dashboard",
+  locations: "/api/locations",
+  login: "/api/login",
+  me: "/api/me",
+  plans: "/api/plans",
+  signup: "/api/sign-up",
+  washHistory: "/api/wash-history",
+} as const;
+
 type RequestOptions = RequestInit & {
   token?: string | null;
 };
@@ -40,37 +50,37 @@ async function request<T>(path: string, options: RequestOptions = {}) {
 }
 
 export function getDashboard() {
-  return request<Dashboard>("/api/dashboard");
+  return request<Dashboard>(ENDPOINTS.dashboard);
 }
 
 export function getLocations() {
-  return request<Location[]>("/api/locations");
+  return request<Location[]>(ENDPOINTS.locations);
 }
 
 export function getPlans() {
-  return request<Plan[]>("/api/plans");
+  return request<Plan[]>(ENDPOINTS.plans);
 }
 
 export function login(payload: LoginPayload) {
-  return request<Session>("/api/login", {
+  return request<Session>(ENDPOINTS.login, {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export function signup(payload: SignupPayload) {
-  return request<Session>("/api/signup", {
+  return request<Session>(ENDPOINTS.signup, {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export function getMe(token: string) {
-  return request<User>("/api/me", { token });
+  return request<User>(ENDPOINTS.me, { token });
 }
 
 export function updateMe(token: string, payload: UpdateProfilePayload) {
-  return request<User>("/api/me", {
+  return request<User>(ENDPOINTS.me, {
     method: "PUT",
     token,
     body: JSON.stringify(payload),
@@ -78,11 +88,11 @@ export function updateMe(token: string, payload: UpdateProfilePayload) {
 }
 
 export function getWashes(token: string) {
-  return request<Wash[]>("/api/washes", { token });
+  return request<Wash[]>(ENDPOINTS.washHistory, { token });
 }
 
 export function createWash(token: string, locationId: number, washType: string) {
-  return request<{ message: string }>("/api/washes", {
+  return request<{ message: string }>(ENDPOINTS.washHistory, {
     method: "POST",
     token,
     body: JSON.stringify({

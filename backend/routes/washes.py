@@ -9,9 +9,10 @@ from validators import positive_int, required_text
 bp = Blueprint("washes", __name__, url_prefix="/api")
 
 
+@bp.get("/wash-history")
 @bp.get("/washes")
 @jwt_required()
-def washes():
+def wash_history():
     rows = fetch_all(
         """
         SELECT
@@ -32,9 +33,10 @@ def washes():
     return jsonify(rows)
 
 
+@bp.post("/wash-history")
 @bp.post("/washes")
 @jwt_required()
-def create_wash():
+def create_wash_history():
     data = request.get_json(silent=True) or {}
 
     location_id = positive_int(data, "location_id", "Location")

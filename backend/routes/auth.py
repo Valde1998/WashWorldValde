@@ -39,8 +39,9 @@ def make_session(user):
     return jsonify({"token": token, "user": get_profile(user["user_id"])})
 
 
+@bp.post("/sign-up")
 @bp.post("/signup")
-def signup():
+def sign_up():
     data = request.get_json(silent=True) or {}
 
     first_name = required_text(data, "first_name", "First name", min_length=2, max_length=80)
