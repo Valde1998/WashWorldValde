@@ -1,0 +1,10 @@
+node_modules/
+.npm-cache/
+.next/
+__pycache__/
+.venv/
+.env
+*.pyc
+*.log
+dev-server.*.log
+.vs/

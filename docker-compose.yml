@@ -1,0 +1,53 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: cleanwash_backend
+    ports:
+      - "5001:5001"
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: password
+      DB_NAME: cleanwash
+      JWT_SECRET_KEY: cleanwash-local-secret
+    depends_on:
+      - mariadb
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: cleanwash_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:5001
+    depends_on:
+      - backend
+
+  mariadb:
+    image: mariadb:10.6.20
+    container_name: cleanwash_mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: cleanwash
+    volumes:
+      - cleanwash_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: cleanwash_phpmyadmin
+    depends_on:
+      - mariadb
+    environment:
+      PMA_HOST: mariadb
+      MYSQL_ROOT_PASSWORD: password
+    ports:
+      - "8080:80"
+
+volumes:
+  cleanwash_data:
