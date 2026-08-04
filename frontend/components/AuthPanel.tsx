@@ -45,7 +45,7 @@ export default function AuthPanel({
 }: AuthPanelProps) {
   const [formError, setFormError] = useState("");
   const [loginForm, setLoginForm] = useState<LoginPayload>({
-    email: "demo@cleanwash.dk",
+    email: "demo@washworld.dk",
     password: "kodeord123",
   });
   const [signupForm, setSignupForm] = useState<SignupPayload>({
@@ -67,6 +67,7 @@ export default function AuthPanel({
 
   const selectedLocationId = signupForm.location_id || locations[0]?.location_id || 1;
   const selectedPlanId = signupForm.plan_id || plans[1]?.plan_id || plans[0]?.plan_id || 1;
+  const hasSignupOptions = locations.length > 0 && plans.length > 0;
 
   function submitLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -104,6 +105,11 @@ export default function AuthPanel({
       return;
     }
 
+    if (!hasSignupOptions) {
+      setFormError("Lokationer og abonnementer er ikke indlæst endnu.");
+      return;
+    }
+
     onSignup({
       ...signupForm,
       location_id: selectedLocationId,
@@ -121,7 +127,6 @@ export default function AuthPanel({
     }
 
     onForgotPassword(forgotForm);
-    onModeChange("reset");
   }
 
   function submitResetPassword(event: FormEvent<HTMLFormElement>) {
@@ -322,7 +327,7 @@ export default function AuthPanel({
               ))}
             </select>
           </label>
-          <button className="primary-button" type="submit" disabled={isLoading}>
+          <button className="primary-button" type="submit" disabled={isLoading || !hasSignupOptions}>
             Opret bruger
           </button>
         </form>

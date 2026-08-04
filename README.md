@@ -1,6 +1,6 @@
-# CleanWash
+# WashWorld
 
-CleanWash er en enklere version af WashWorld-projektet med samme type værktøjer:
+WashWorld er en overskuelig fullstack-app til administration af bilvask:
 
 - Next.js, React og TypeScript i frontend
 - React Query til data mellem frontend og backend
@@ -27,7 +27,7 @@ Når containerne kører:
 ## Demo-login
 
 ```text
-Email: demo@cleanwash.dk
+Email: demo@washworld.dk
 Kodeord: kodeord123
 ```
 
@@ -85,6 +85,9 @@ cd frontend
 npm run lint
 npm run build
 npm run e2e
+
+cd ../backend
+python -m unittest discover -s tests
 ```
 
 `npm run e2e` kræver, at frontend kører på http://localhost:3000.
@@ -102,16 +105,16 @@ npm run e2e
 ```text
 Frontend:
 - Component-based architecture: components/
-- useState og props: CleanWashApp, AuthPanel, ProfilePanel
+- useState og props: WashWorldApp, AuthPanel, ProfilePanel
 - useEffect: hooks/useStoredToken.ts
 - Custom hook: hooks/useStoredToken.ts
-- Fetch og TanStack Query: lib/api.ts og CleanWashApp
+- Fetch og TanStack Query: lib/api.ts og WashWorldApp
 - Loading/error/empty states: LocationList og WashHistory
 - Form validation: AuthPanel og validators.py
 - JWT authentication: login, localStorage token og Authorization header
 - Search/filter: søgning i vaskehaller
 - Optimistic UI update: registrer vask opdaterer historik før server-svar
-- Cypress E2E: cypress/e2e/cleanwash.cy.ts
+- Cypress E2E: cypress/e2e/washworld.cy.ts
 
 Backend:
 - REST API: app.py endpoints

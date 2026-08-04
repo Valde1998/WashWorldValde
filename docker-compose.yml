@@ -2,25 +2,28 @@ services:
   backend:
     build:
       context: ./backend
-    container_name: cleanwash_backend
+    container_name: washworld_backend
     ports:
-      - "5001:5001"
+      - "127.0.0.1:5001:5001"
     environment:
       DB_HOST: mariadb
       DB_PORT: 3306
       DB_USER: root
       DB_PASSWORD: password
       DB_NAME: cleanwash
-      JWT_SECRET_KEY: cleanwash-local-secret
+      JWT_SECRET_KEY: washworld-local-secret
+      CORS_ORIGINS: http://localhost:3000
+      FLASK_DEBUG: "false"
     depends_on:
-      - mariadb
+      mariadb:
+        condition: service_healthy
 
   frontend:
     build:
       context: ./frontend
-    container_name: cleanwash_frontend
+    container_name: washworld_frontend
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:5001
     depends_on:
@@ -28,26 +31,31 @@ services:
 
   mariadb:
     image: mariadb:10.6.20
-    container_name: cleanwash_mariadb
+    container_name: washworld_mariadb
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: cleanwash
     volumes:
       - cleanwash_data:/var/lib/mysql
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    container_name: cleanwash_phpmyadmin
+    container_name: washworld_phpmyadmin
     depends_on:
-      - mariadb
+      mariadb:
+        condition: service_healthy
     environment:
       PMA_HOST: mariadb
       MYSQL_ROOT_PASSWORD: password
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"
 
 volumes:
+  # Det interne volumenavn bevares, så eksisterende lokale data fortsat kan bruges.
   cleanwash_data:

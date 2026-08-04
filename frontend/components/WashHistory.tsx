@@ -7,9 +7,11 @@ import type { Wash } from "@/types/app";
 type WashHistoryProps = {
   washes: Wash[];
   isLoggedIn: boolean;
+  isLoading: boolean;
+  hasError: boolean;
 };
 
-export default function WashHistory({ washes, isLoggedIn }: WashHistoryProps) {
+export default function WashHistory({ washes, isLoggedIn, isLoading, hasError }: WashHistoryProps) {
   return (
     <section className="panel">
       <div className="panel-heading">
@@ -22,6 +24,10 @@ export default function WashHistory({ washes, isLoggedIn }: WashHistoryProps) {
 
       {!isLoggedIn ? (
         <p className="muted-text">Log ind for at se din historik.</p>
+      ) : isLoading ? (
+        <p className="muted-text">Henter vaskehistorik...</p>
+      ) : hasError ? (
+        <p className="form-error">Kunne ikke hente vaskehistorikken.</p>
       ) : washes.length === 0 ? (
         <p className="muted-text">Ingen vaske endnu.</p>
       ) : (

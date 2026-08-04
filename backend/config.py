@@ -8,3 +8,9 @@ class Config:
     DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
     DB_NAME = os.getenv("DB_NAME", "cleanwash")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "change-this-in-production")
+    CORS_ORIGINS = [
+        origin.strip()
+        for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+        if origin.strip()
+    ]
+    DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"

@@ -12,7 +12,7 @@ from mysql.connector import Error as MySQLError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import Config
-from database import execute, fetch_all, fetch_one
+from database import execute, fetch_all, fetch_one, run_transaction
 from validators import (
     ValidationError,
     email,
@@ -26,7 +26,7 @@ from validators import (
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = Config.JWT_SECRET_KEY
 
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": Config.CORS_ORIGINS}})
 JWTManager(app)
 
 
@@ -59,8 +59,8 @@ def create_session_response(user_id, status_code=200):
     return jsonify({"token": token, "user": get_profile(user_id)}), status_code
 
 
-def send_email(user_id, email_to, subject, body):
-    execute(
+def queue_email(cursor, user_id, email_to, subject, body):
+    cursor.execute(
         """
         INSERT INTO email_outbox (email_id, user_id, email_to, subject, body)
         VALUES (%s, %s, %s, %s, %s)
@@ -79,7 +79,7 @@ def validate_location_and_plan(location_id, plan_id):
 
 @app.get("/")
 def health_check():
-    return jsonify({"status": "ok", "message": "CleanWash API is running"})
+    return jsonify({"status": "ok", "message": "WashWorld API is running"})
 
 
 @app.get("/api/locations")
@@ -167,39 +167,43 @@ def sign_up():
     validate_location_and_plan(location_id, plan_id)
 
     user_id = uuid.uuid4().hex
+    password_hash = generate_password_hash(user_password)
 
-    execute(
-        """
-        INSERT INTO users (
-            user_id,
-            first_name,
-            email,
-            password_hash,
-            license_plate,
-            phone,
-            location_id,
-            plan_id
+    def create_user(cursor):
+        cursor.execute(
+            """
+            INSERT INTO users (
+                user_id,
+                first_name,
+                email,
+                password_hash,
+                license_plate,
+                phone,
+                location_id,
+                plan_id
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                user_id,
+                first_name,
+                user_email,
+                password_hash,
+                user_license_plate,
+                phone,
+                location_id,
+                plan_id,
+            ),
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """,
-        (
+        queue_email(
+            cursor,
             user_id,
-            first_name,
             user_email,
-            generate_password_hash(user_password),
-            user_license_plate,
-            phone,
-            location_id,
-            plan_id,
-        ),
-    )
+            "Velkommen til WashWorld",
+            f"Hej {first_name}. Din WashWorld-konto er oprettet, og dit abonnement er aktivt.",
+        )
 
-    send_email(
-        user_id,
-        user_email,
-        "Velkommen til CleanWash",
-        f"Hej {first_name}. Din CleanWash-konto er oprettet, og dit abonnement er aktivt.",
-    )
+    run_transaction(create_user)
 
     return create_session_response(user_id, 201)
 
@@ -227,20 +231,23 @@ def forgot_password():
     if user:
         reset_key = uuid.uuid4().hex
 
-        execute(
-            """
-            INSERT INTO password_reset_tokens (reset_id, user_id, reset_key, expires_at)
-            VALUES (%s, %s, %s, DATE_ADD(NOW(), INTERVAL 30 MINUTE))
-            """,
-            (uuid.uuid4().hex, user["user_id"], reset_key),
-        )
+        def create_reset(cursor):
+            cursor.execute(
+                """
+                INSERT INTO password_reset_tokens (reset_id, user_id, reset_key, expires_at)
+                VALUES (%s, %s, %s, DATE_ADD(NOW(), INTERVAL 30 MINUTE))
+                """,
+                (uuid.uuid4().hex, user["user_id"], reset_key),
+            )
+            queue_email(
+                cursor,
+                user["user_id"],
+                user["email"],
+                "Nulstil dit WashWorld kodeord",
+                f"Hej {user['first_name']}. Brug denne reset-kode i appen: {reset_key}",
+            )
 
-        send_email(
-            user["user_id"],
-            user["email"],
-            "Nulstil dit CleanWash kodeord",
-            f"Hej {user['first_name']}. Brug denne reset-kode i appen: {reset_key}",
-        )
+        run_transaction(create_reset)
 
     return jsonify({"message": "Hvis emailen findes, er der sendt en reset-email"}), 200
 
@@ -270,30 +277,40 @@ def reset_password():
     if not reset:
         return jsonify({"error": "Reset key is invalid or expired"}), 400
 
-    execute(
-        """
-        UPDATE users
-        SET password_hash = %s
-        WHERE user_id = %s
-        """,
-        (generate_password_hash(new_password), reset["user_id"]),
-    )
+    new_password_hash = generate_password_hash(new_password)
 
-    execute(
-        """
-        UPDATE password_reset_tokens
-        SET used_at = NOW()
-        WHERE reset_id = %s
-        """,
-        (reset["reset_id"],),
-    )
+    def update_password(cursor):
+        cursor.execute(
+            """
+            UPDATE password_reset_tokens
+            SET used_at = NOW()
+            WHERE reset_id = %s
+              AND used_at IS NULL
+              AND expires_at > NOW()
+            """,
+            (reset["reset_id"],),
+        )
 
-    send_email(
-        reset["user_id"],
-        reset["email"],
-        "Dit CleanWash kodeord er ændret",
-        "Dit kodeord er nu ændret. Hvis det ikke var dig, skal du kontakte support.",
-    )
+        if cursor.rowcount != 1:
+            raise ValidationError("Reset key is invalid or expired")
+
+        cursor.execute(
+            """
+            UPDATE users
+            SET password_hash = %s
+            WHERE user_id = %s
+            """,
+            (new_password_hash, reset["user_id"]),
+        )
+        queue_email(
+            cursor,
+            reset["user_id"],
+            reset["email"],
+            "Dit WashWorld kodeord er ændret",
+            "Dit kodeord er nu ændret. Hvis det ikke var dig, skal du kontakte support.",
+        )
+
+    run_transaction(update_password)
 
     return jsonify({"message": "Password was reset"}), 200
 
@@ -405,4 +422,4 @@ def unknown_error(error):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=Config.DEBUG)

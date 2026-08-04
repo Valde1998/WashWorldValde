@@ -77,3 +77,19 @@ def execute(sql, params=()):
     finally:
         cursor.close()
         connection.close()
+
+
+def run_transaction(work):
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        result = work(cursor)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        cursor.close()
+        connection.close()

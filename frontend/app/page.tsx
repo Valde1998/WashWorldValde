@@ -1,5 +1,5 @@
-import CleanWashApp from "@/components/CleanWashApp";
+import WashWorldApp from "@/components/WashWorldApp";
 
 export default function Home() {
-  return <CleanWashApp />;
+  return <WashWorldApp />;
 }

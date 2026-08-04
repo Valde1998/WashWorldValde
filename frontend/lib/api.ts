@@ -31,6 +31,29 @@ type RequestOptions = RequestInit & {
   token?: string | null;
 };
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+function responseErrorMessage(data: unknown) {
+  if (
+    typeof data === "object" &&
+    data !== null &&
+    "error" in data &&
+    typeof data.error === "string"
+  ) {
+    return data.error;
+  }
+
+  return "Serveren svarede ikke som forventet";
+}
+
 async function request<T>(path: string, options: RequestOptions = {}) {
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
@@ -45,10 +68,22 @@ async function request<T>(path: string, options: RequestOptions = {}) {
   });
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  let data: unknown = null;
+
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      if (!response.ok) {
+        throw new ApiError("Serveren returnerede et ugyldigt svar", response.status);
+      }
+
+      throw new ApiError("Serverens svar kunne ikke læses", response.status);
+    }
+  }
 
   if (!response.ok) {
-    throw new Error(data?.error ?? "Serveren svarede ikke som forventet");
+    throw new ApiError(responseErrorMessage(data), response.status);
   }
 
   return data as T;

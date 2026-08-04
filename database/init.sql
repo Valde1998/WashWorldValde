@@ -71,9 +71,9 @@ CREATE TABLE password_reset_tokens (
 );
 
 INSERT INTO locations (name, city, address, opening_hours, queue_minutes, image) VALUES
-('CleanWash Tilst', 'Tilst', 'Blomstervej 12', '06:00 - 22:00', 4, '/location-tilst.webp'),
-('CleanWash Viby', 'Viby', 'Sonderhoj 9', '06:00 - 22:00', 7, '/location-viby.webp'),
-('CleanWash Hojbjerg', 'Hojbjerg', 'Oddervej 88', '07:00 - 21:00', 2, '/location-hojbjerg.webp');
+('WashWorld Tilst', 'Tilst', 'Blomstervej 12', '06:00 - 22:00', 4, '/location-tilst.webp'),
+('WashWorld Viby', 'Viby', 'Sonderhoj 9', '06:00 - 22:00', 7, '/location-viby.webp'),
+('WashWorld Hojbjerg', 'Hojbjerg', 'Oddervej 88', '07:00 - 21:00', 2, '/location-hojbjerg.webp');
 
 INSERT INTO plans (name, description, monthly_price, single_wash_price) VALUES
 ('Basis', 'Til dig der vasker bilen et par gange om maaneden.', 99.00, 79.00),
@@ -92,7 +92,7 @@ INSERT INTO users (
 ) VALUES (
     '11111111111111111111111111111111',
     'Demo',
-    'demo@cleanwash.dk',
+    'demo@washworld.dk',
     'pbkdf2:sha256:1000000$cleansalt$205e7ac25787fd22f31f09e5b63c0193d19db153911f9a4e0a755ed3a2ebc025',
     'AB 12345',
     '12345678',
@@ -106,4 +106,4 @@ INSERT INTO wash_history (wash_id, user_id, location_id, wash_type, washed_at) V
 ('cccccccccccccccccccccccccccccccc', '11111111111111111111111111111111', 1, 'Plus vask', DATE_SUB(NOW(), INTERVAL 1 DAY));
 
 INSERT INTO email_outbox (email_id, user_id, email_to, subject, body) VALUES
-('dddddddddddddddddddddddddddddddd', '11111111111111111111111111111111', 'demo@cleanwash.dk', 'Velkommen til CleanWash', 'Hej Demo. Din demo-bruger er klar.');
+('dddddddddddddddddddddddddddddddd', '11111111111111111111111111111111', 'demo@washworld.dk', 'Velkommen til WashWorld', 'Hej Demo. Din demo-bruger er klar.');

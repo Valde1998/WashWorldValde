@@ -1,30 +1,42 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
-const TOKEN_KEY = "cleanwash_token";
+const TOKEN_KEY = "washworld_token";
+const TOKEN_EVENT = "washworld-token-change";
+
+function subscribe(onStoreChange: () => void) {
+  window.addEventListener("storage", onStoreChange);
+  window.addEventListener(TOKEN_EVENT, onStoreChange);
+
+  return () => {
+    window.removeEventListener("storage", onStoreChange);
+    window.removeEventListener(TOKEN_EVENT, onStoreChange);
+  };
+}
+
+function getTokenSnapshot() {
+  return window.localStorage.getItem(TOKEN_KEY);
+}
+
+function getServerTokenSnapshot() {
+  return null;
+}
 
 export function useStoredToken() {
-  const [token, setToken] = useState<string | null>(() => {
-    if (typeof window === "undefined") {
-      return null;
+  const token = useSyncExternalStore(subscribe, getTokenSnapshot, getServerTokenSnapshot);
+
+  const saveToken = useCallback((nextToken: string | null) => {
+    if (nextToken) {
+      window.localStorage.setItem(TOKEN_KEY, nextToken);
+    } else {
+      window.localStorage.removeItem(TOKEN_KEY);
     }
 
-    return window.localStorage.getItem(TOKEN_KEY);
-  });
+    window.dispatchEvent(new Event(TOKEN_EVENT));
+  }, []);
 
-  useEffect(() => {
-    if (token) {
-      window.localStorage.setItem(TOKEN_KEY, token);
-      return;
-    }
+  const clearToken = useCallback(() => saveToken(null), [saveToken]);
 
-    window.localStorage.removeItem(TOKEN_KEY);
-  }, [token]);
-
-  return {
-    token,
-    saveToken: setToken,
-    clearToken: () => setToken(null),
-  };
+  return { token, saveToken, clearToken };
 }

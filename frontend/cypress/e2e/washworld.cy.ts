@@ -1,12 +1,4 @@
-describe("CleanWash dashboard", () => {
-  Cypress.on("uncaught:exception", (error) => {
-    if (error.message.includes("Cannot read properties of null")) {
-      return false;
-    }
-
-    return true;
-  });
-
+describe("WashWorld dashboard", () => {
   beforeEach(() => {
     cy.intercept("GET", "**/api/dashboard", {
       totals: {
@@ -25,7 +17,7 @@ describe("CleanWash dashboard", () => {
     cy.intercept("GET", "**/api/locations", [
       {
         location_id: 1,
-        name: "CleanWash Tilst",
+        name: "WashWorld Tilst",
         city: "Tilst",
         address: "Blomstervej 12",
         opening_hours: "06:00 - 22:00",
@@ -34,7 +26,7 @@ describe("CleanWash dashboard", () => {
       },
       {
         location_id: 2,
-        name: "CleanWash Viby",
+        name: "WashWorld Viby",
         city: "Viby",
         address: "Sonderhoj 9",
         opening_hours: "06:00 - 22:00",
@@ -65,11 +57,11 @@ describe("CleanWash dashboard", () => {
       user: {
         user_id: "11111111111111111111111111111111",
         first_name: "Demo",
-        email: "demo@cleanwash.dk",
+        email: "demo@washworld.dk",
         license_plate: "AB 12345",
         phone: "12345678",
         location_id: 1,
-        location_name: "CleanWash Tilst",
+        location_name: "WashWorld Tilst",
         location_city: "Tilst",
         plan_id: 2,
         plan_name: "Plus",
@@ -80,11 +72,11 @@ describe("CleanWash dashboard", () => {
     cy.intercept("GET", "**/api/me", {
       user_id: "11111111111111111111111111111111",
       first_name: "Demo",
-      email: "demo@cleanwash.dk",
+      email: "demo@washworld.dk",
       license_plate: "AB 12345",
       phone: "12345678",
       location_id: 1,
-      location_name: "CleanWash Tilst",
+      location_name: "WashWorld Tilst",
       location_city: "Tilst",
       plan_id: 2,
       plan_name: "Plus",
@@ -104,5 +96,23 @@ describe("CleanWash dashboard", () => {
 
     cy.contains("button", "Log ind").click();
     cy.contains("Gem profil");
+  });
+
+  it("clears an expired session and returns to login", () => {
+    cy.intercept("GET", "**/api/me", {
+      statusCode: 401,
+      body: { error: "Token has expired" },
+    }).as("expiredSession");
+
+    cy.visit("/", {
+      onBeforeLoad(window) {
+        window.localStorage.setItem("washworld_token", "expired-token");
+      },
+    });
+
+    cy.wait("@expiredSession");
+    cy.contains("Din session er udløbet. Log ind igen.");
+    cy.contains("button", "Log ind");
+    cy.window().its("localStorage").invoke("getItem", "washworld_token").should("be.null");
   });
 });

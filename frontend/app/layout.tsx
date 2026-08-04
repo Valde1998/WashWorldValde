@@ -5,7 +5,7 @@ import QueryProvider from "@/components/QueryProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CleanWash",
+  title: "WashWorld",
   description: "En simpel fullstack vaskehal-app med Next.js og Flask.",
 };
 

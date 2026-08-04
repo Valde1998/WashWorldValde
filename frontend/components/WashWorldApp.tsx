@@ -12,6 +12,7 @@ import ProfilePanel from "@/components/ProfilePanel";
 import WashHistory from "@/components/WashHistory";
 import { useStoredToken } from "@/hooks/useStoredToken";
 import {
+  ApiError,
   createWash,
   forgotPassword,
   getDashboard,
@@ -48,7 +49,7 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-export default function CleanWashApp() {
+export default function WashWorldApp() {
   const queryClient = useQueryClient();
   const { token, saveToken, clearToken } = useStoredToken();
   const [authMode, setAuthMode] = useState<AuthMode>("login");
@@ -60,13 +61,22 @@ export default function CleanWashApp() {
   const plansQuery = useQuery({ queryKey: ["plans"], queryFn: getPlans });
   const profileQuery = useQuery({
     queryKey: ["me", token],
-    queryFn: () => getMe(token ?? ""),
+    queryFn: async () => {
+      try {
+        return await getMe(token ?? "");
+      } catch (error) {
+        handleProtectedError(error as Error);
+        throw error;
+      }
+    },
     enabled: Boolean(token),
+    retry: false,
   });
   const washesQuery = useQuery({
     queryKey: ["washes", token],
     queryFn: () => getWashes(token ?? ""),
     enabled: Boolean(token),
+    retry: false,
   });
 
   const locations = locationsQuery.data ?? EMPTY_LOCATIONS;
@@ -104,6 +114,18 @@ export default function CleanWashApp() {
     void queryClient.invalidateQueries({ queryKey: ["washes"] });
   }
 
+  function handleProtectedError(error: Error) {
+    if (error instanceof ApiError && error.status === 401) {
+      clearToken();
+      queryClient.removeQueries({ queryKey: ["me"] });
+      queryClient.removeQueries({ queryKey: ["washes"] });
+      setNotice("Din session er udløbet. Log ind igen.");
+      return;
+    }
+
+    setNotice(error.message);
+  }
+
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: saveSession,
@@ -118,7 +140,10 @@ export default function CleanWashApp() {
 
   const forgotPasswordMutation = useMutation({
     mutationFn: forgotPassword,
-    onSuccess: (response) => setNotice(response.message),
+    onSuccess: (response) => {
+      setNotice(response.message);
+      setAuthMode("reset");
+    },
     onError: (error) => setNotice(error.message),
   });
 
@@ -137,7 +162,7 @@ export default function CleanWashApp() {
       setNotice("Profilen er gemt");
       void queryClient.invalidateQueries({ queryKey: ["me"] });
     },
-    onError: (error) => setNotice(error.message),
+    onError: handleProtectedError,
   });
 
   const washMutation = useMutation({
@@ -152,7 +177,7 @@ export default function CleanWashApp() {
         wash_id: `optimistic-${Date.now()}`,
         wash_type: payload.washType,
         washed_at: new Date().toISOString(),
-        location_name: location?.name ?? "CleanWash",
+        location_name: location?.name ?? "WashWorld",
         location_city: location?.city ?? "Ukendt",
         is_optimistic: true,
       };
@@ -170,7 +195,7 @@ export default function CleanWashApp() {
         queryClient.setQueryData<Wash[]>(washesQueryKey, context.previousWashes);
       }
 
-      setNotice(error.message);
+      handleProtectedError(error);
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ["washes"] });
@@ -221,7 +246,7 @@ export default function CleanWashApp() {
   return (
     <main className="app-shell">
       <aside className="sidebar" aria-label="Hovedmenu">
-        <Image alt="CleanWash" height={36} src="/logo.webp" width={116} priority />
+        <Image alt="WashWorld" height={36} src="/logo.webp" width={116} priority />
         <nav>
           <a href="#overview">Overblik</a>
           <a href="#locations">Lokationer</a>
@@ -232,7 +257,7 @@ export default function CleanWashApp() {
       <section className="workspace" id="overview">
         <header className="topbar">
           <div>
-            <p className="eyebrow">CleanWash</p>
+            <p className="eyebrow">WashWorld</p>
             <h1>Vaskehal dashboard</h1>
           </div>
           <div className="status-pill">{apiStatus}</div>
@@ -249,7 +274,7 @@ export default function CleanWashApp() {
           <div className="main-column" id="locations">
             <DashboardChart data={dashboard?.washes_per_day ?? []} />
             <LocationList
-              canCreateWash={Boolean(token)}
+              canCreateWash={Boolean(profile)}
               currentPlanName={currentPlanName}
               hasError={locationsQuery.isError}
               isLoading={locationsQuery.isLoading}
@@ -262,7 +287,11 @@ export default function CleanWashApp() {
           </div>
 
           <aside className="side-column" id="account">
-            {profile ? (
+            {token && profileQuery.isLoading ? (
+              <section className="panel" aria-live="polite">
+                <p className="muted-text">Henter profil...</p>
+              </section>
+            ) : profile ? (
               <ProfilePanel
                 key={`${profile.user_id}-${profile.first_name}-${profile.license_plate}-${profile.location_id}-${profile.plan_id}`}
                 isSaving={updateMutation.isPending}
@@ -286,7 +315,12 @@ export default function CleanWashApp() {
               />
             )}
             <PlanList currentPlanId={profile?.plan_id} plans={plans} />
-            <WashHistory isLoggedIn={Boolean(token)} washes={washesQuery.data ?? EMPTY_WASHES} />
+            <WashHistory
+              hasError={washesQuery.isError}
+              isLoading={washesQuery.isLoading}
+              isLoggedIn={Boolean(profile)}
+              washes={washesQuery.data ?? EMPTY_WASHES}
+            />
           </aside>
         </section>
       </section>
