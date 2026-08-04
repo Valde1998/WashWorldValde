@@ -59,6 +59,16 @@ def create_session_response(user_id, status_code=200):
     return jsonify({"token": token, "user": get_profile(user_id)}), status_code
 
 
+def send_email(user_id, email_to, subject, body):
+    execute(
+        """
+        INSERT INTO email_outbox (email_id, user_id, email_to, subject, body)
+        VALUES (%s, %s, %s, %s, %s)
+        """,
+        (uuid.uuid4().hex, user_id, email_to, subject, body),
+    )
+
+
 def validate_location_and_plan(location_id, plan_id):
     if not fetch_one("SELECT location_id FROM locations WHERE location_id = %s", (location_id,)):
         raise ValidationError("Location does not exist")
@@ -184,6 +194,13 @@ def sign_up():
         ),
     )
 
+    send_email(
+        user_id,
+        user_email,
+        "Velkommen til CleanWash",
+        f"Hej {first_name}. Din CleanWash-konto er oprettet, og dit abonnement er aktivt.",
+    )
+
     return create_session_response(user_id, 201)
 
 
@@ -199,6 +216,86 @@ def login():
         return jsonify({"error": "Email or password is wrong"}), 401
 
     return create_session_response(user["user_id"])
+
+
+@app.post("/api/forgot-password")
+def forgot_password():
+    data = request.get_json(silent=True) or {}
+    user_email = email(data)
+    user = fetch_one("SELECT user_id, first_name, email FROM users WHERE email = %s", (user_email,))
+
+    if user:
+        reset_key = uuid.uuid4().hex
+
+        execute(
+            """
+            INSERT INTO password_reset_tokens (reset_id, user_id, reset_key, expires_at)
+            VALUES (%s, %s, %s, DATE_ADD(NOW(), INTERVAL 30 MINUTE))
+            """,
+            (uuid.uuid4().hex, user["user_id"], reset_key),
+        )
+
+        send_email(
+            user["user_id"],
+            user["email"],
+            "Nulstil dit CleanWash kodeord",
+            f"Hej {user['first_name']}. Brug denne reset-kode i appen: {reset_key}",
+        )
+
+    return jsonify({"message": "Hvis emailen findes, er der sendt en reset-email"}), 200
+
+
+@app.post("/api/reset-password")
+def reset_password():
+    data = request.get_json(silent=True) or {}
+
+    reset_key = required_text(data, "reset_key", "Reset key", min_length=32, max_length=32)
+    new_password = password(data)
+    reset = fetch_one(
+        """
+        SELECT
+            password_reset_tokens.reset_id,
+            users.user_id,
+            users.email
+        FROM password_reset_tokens
+        JOIN users ON users.user_id = password_reset_tokens.user_id
+        WHERE password_reset_tokens.reset_key = %s
+          AND password_reset_tokens.used_at IS NULL
+          AND password_reset_tokens.expires_at > NOW()
+        LIMIT 1
+        """,
+        (reset_key,),
+    )
+
+    if not reset:
+        return jsonify({"error": "Reset key is invalid or expired"}), 400
+
+    execute(
+        """
+        UPDATE users
+        SET password_hash = %s
+        WHERE user_id = %s
+        """,
+        (generate_password_hash(new_password), reset["user_id"]),
+    )
+
+    execute(
+        """
+        UPDATE password_reset_tokens
+        SET used_at = NOW()
+        WHERE reset_id = %s
+        """,
+        (reset["reset_id"],),
+    )
+
+    send_email(
+        reset["user_id"],
+        reset["email"],
+        "Dit CleanWash kodeord er ændret",
+        "Dit kodeord er nu ændret. Hvis det ikke var dig, skal du kontakte support.",
+    )
+
+    return jsonify({"message": "Password was reset"}), 200
 
 
 @app.get("/api/me")

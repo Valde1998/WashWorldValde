@@ -30,7 +30,7 @@ export default function WashHistory({ washes, isLoggedIn }: WashHistoryProps) {
             <article className="wash-row" key={wash.wash_id}>
               <div>
                 <strong>{wash.location_city}</strong>
-                <span>{wash.wash_type}</span>
+                <span>{wash.wash_type}{wash.is_optimistic ? " · gemmes" : ""}</span>
               </div>
               <time dateTime={wash.washed_at}>
                 {new Intl.DateTimeFormat("da-DK", {

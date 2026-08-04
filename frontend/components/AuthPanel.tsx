@@ -3,9 +3,16 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 
-import type { Location, LoginPayload, Plan, SignupPayload } from "@/types/app";
+import type {
+  ForgotPasswordPayload,
+  Location,
+  LoginPayload,
+  Plan,
+  ResetPasswordPayload,
+  SignupPayload,
+} from "@/types/app";
 
-type AuthMode = "login" | "signup";
+export type AuthMode = "login" | "signup" | "forgot" | "reset";
 
 type AuthPanelProps = {
   mode: AuthMode;
@@ -15,7 +22,15 @@ type AuthPanelProps = {
   onModeChange: (mode: AuthMode) => void;
   onLogin: (payload: LoginPayload) => void;
   onSignup: (payload: SignupPayload) => void;
+  onForgotPassword: (payload: ForgotPasswordPayload) => void;
+  onResetPassword: (payload: ResetPasswordPayload) => void;
 };
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isEmail(value: string) {
+  return EMAIL_PATTERN.test(value.trim());
+}
 
 export default function AuthPanel({
   mode,
@@ -25,7 +40,10 @@ export default function AuthPanel({
   onModeChange,
   onLogin,
   onSignup,
+  onForgotPassword,
+  onResetPassword,
 }: AuthPanelProps) {
+  const [formError, setFormError] = useState("");
   const [loginForm, setLoginForm] = useState<LoginPayload>({
     email: "demo@cleanwash.dk",
     password: "kodeord123",
@@ -39,16 +57,53 @@ export default function AuthPanel({
     location_id: 0,
     plan_id: 0,
   });
+  const [forgotForm, setForgotForm] = useState<ForgotPasswordPayload>({
+    email: "",
+  });
+  const [resetForm, setResetForm] = useState<ResetPasswordPayload>({
+    reset_key: "",
+    password: "",
+  });
+
   const selectedLocationId = signupForm.location_id || locations[0]?.location_id || 1;
   const selectedPlanId = signupForm.plan_id || plans[1]?.plan_id || plans[0]?.plan_id || 1;
 
   function submitLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setFormError("");
+
+    if (!isEmail(loginForm.email) || loginForm.password.length < 8) {
+      setFormError("Udfyld email og kodeord korrekt.");
+      return;
+    }
+
     onLogin(loginForm);
   }
 
   function submitSignup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setFormError("");
+
+    if (signupForm.first_name.trim().length < 2) {
+      setFormError("Navn skal være mindst 2 tegn.");
+      return;
+    }
+
+    if (!isEmail(signupForm.email)) {
+      setFormError("Email skal være gyldig.");
+      return;
+    }
+
+    if (signupForm.password.length < 8) {
+      setFormError("Kodeord skal være mindst 8 tegn.");
+      return;
+    }
+
+    if (signupForm.license_plate.trim().length < 2) {
+      setFormError("Nummerplade skal udfyldes.");
+      return;
+    }
+
     onSignup({
       ...signupForm,
       location_id: selectedLocationId,
@@ -56,12 +111,49 @@ export default function AuthPanel({
     });
   }
 
+  function submitForgotPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFormError("");
+
+    if (!isEmail(forgotForm.email)) {
+      setFormError("Email skal være gyldig.");
+      return;
+    }
+
+    onForgotPassword(forgotForm);
+    onModeChange("reset");
+  }
+
+  function submitResetPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFormError("");
+
+    if (resetForm.reset_key.trim().length !== 32) {
+      setFormError("Reset-koden skal være 32 tegn.");
+      return;
+    }
+
+    if (resetForm.password.length < 8) {
+      setFormError("Nyt kodeord skal være mindst 8 tegn.");
+      return;
+    }
+
+    onResetPassword(resetForm);
+  }
+
+  const title = {
+    login: "Log ind",
+    signup: "Opret bruger",
+    forgot: "Glemt kodeord",
+    reset: "Nulstil kodeord",
+  }[mode];
+
   return (
     <section className="panel">
       <div className="panel-heading">
         <div>
           <p className="eyebrow">Konto</p>
-          <h2>{mode === "login" ? "Log ind" : "Opret bruger"}</h2>
+          <h2>{title}</h2>
         </div>
         <div className="segmented-control" aria-label="Skift kontoform">
           <button
@@ -81,11 +173,14 @@ export default function AuthPanel({
         </div>
       </div>
 
+      {formError ? <p className="form-error">{formError}</p> : null}
+
       {mode === "login" ? (
         <form className="form-grid" onSubmit={submitLogin}>
           <label>
             Email
             <input
+              required
               type="email"
               value={loginForm.email}
               onChange={(event) =>
@@ -99,6 +194,8 @@ export default function AuthPanel({
           <label>
             Kodeord
             <input
+              required
+              minLength={8}
               type="password"
               value={loginForm.password}
               onChange={(event) =>
@@ -112,12 +209,19 @@ export default function AuthPanel({
           <button className="primary-button" type="submit" disabled={isLoading}>
             Log ind
           </button>
+          <button className="ghost-button" type="button" onClick={() => onModeChange("forgot")}>
+            Glemt kodeord
+          </button>
         </form>
-      ) : (
+      ) : null}
+
+      {mode === "signup" ? (
         <form className="form-grid" onSubmit={submitSignup}>
           <label>
             Navn
             <input
+              required
+              minLength={2}
               value={signupForm.first_name}
               onChange={(event) =>
                 setSignupForm((current) => ({
@@ -130,6 +234,7 @@ export default function AuthPanel({
           <label>
             Email
             <input
+              required
               type="email"
               value={signupForm.email}
               onChange={(event) =>
@@ -143,6 +248,8 @@ export default function AuthPanel({
           <label>
             Kodeord
             <input
+              required
+              minLength={8}
               type="password"
               value={signupForm.password}
               onChange={(event) =>
@@ -156,6 +263,8 @@ export default function AuthPanel({
           <label>
             Nummerplade
             <input
+              required
+              minLength={2}
               value={signupForm.license_plate}
               onChange={(event) =>
                 setSignupForm((current) => ({
@@ -217,7 +326,68 @@ export default function AuthPanel({
             Opret bruger
           </button>
         </form>
-      )}
+      ) : null}
+
+      {mode === "forgot" ? (
+        <form className="form-grid" onSubmit={submitForgotPassword}>
+          <label>
+            Email
+            <input
+              required
+              type="email"
+              value={forgotForm.email}
+              onChange={(event) => setForgotForm({ email: event.target.value })}
+            />
+          </label>
+          <button className="primary-button" type="submit" disabled={isLoading}>
+            Send reset-email
+          </button>
+          <button className="ghost-button" type="button" onClick={() => onModeChange("login")}>
+            Tilbage
+          </button>
+        </form>
+      ) : null}
+
+      {mode === "reset" ? (
+        <form className="form-grid" onSubmit={submitResetPassword}>
+          <label>
+            Reset-kode
+            <input
+              required
+              minLength={32}
+              maxLength={32}
+              value={resetForm.reset_key}
+              onChange={(event) =>
+                setResetForm((current) => ({
+                  ...current,
+                  reset_key: event.target.value,
+                }))
+              }
+            />
+          </label>
+          <label>
+            Nyt kodeord
+            <input
+              required
+              minLength={8}
+              type="password"
+              value={resetForm.password}
+              onChange={(event) =>
+                setResetForm((current) => ({
+                  ...current,
+                  password: event.target.value,
+                }))
+              }
+            />
+          </label>
+          <button className="primary-button" type="submit" disabled={isLoading}>
+            Gem nyt kodeord
+          </button>
+          <button className="ghost-button" type="button" onClick={() => onModeChange("login")}>
+            Tilbage
+          </button>
+        </form>
+      ) : null}
     </section>
   );
 }

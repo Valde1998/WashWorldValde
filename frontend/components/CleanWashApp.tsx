@@ -4,26 +4,36 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import AuthPanel from "@/components/AuthPanel";
+import AuthPanel, { type AuthMode } from "@/components/AuthPanel";
 import DashboardChart from "@/components/DashboardChart";
 import LocationList from "@/components/LocationList";
 import PlanList from "@/components/PlanList";
 import ProfilePanel from "@/components/ProfilePanel";
 import WashHistory from "@/components/WashHistory";
+import { useStoredToken } from "@/hooks/useStoredToken";
 import {
   createWash,
+  forgotPassword,
   getDashboard,
   getLocations,
   getMe,
   getPlans,
   getWashes,
   login,
+  resetPassword,
   signup,
   updateMe,
 } from "@/lib/api";
-import type { Location, LoginPayload, Plan, SignupPayload, UpdateProfilePayload, Wash } from "@/types/app";
-
-type AuthMode = "login" | "signup";
+import type {
+  ForgotPasswordPayload,
+  Location,
+  LoginPayload,
+  Plan,
+  ResetPasswordPayload,
+  SignupPayload,
+  UpdateProfilePayload,
+  Wash,
+} from "@/types/app";
 
 const EMPTY_LOCATIONS: Location[] = [];
 const EMPTY_PLANS: Plan[] = [];
@@ -40,14 +50,9 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
 
 export default function CleanWashApp() {
   const queryClient = useQueryClient();
-  const [token, setToken] = useState<string | null>(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-
-    return window.localStorage.getItem("cleanwash_token");
-  });
+  const { token, saveToken, clearToken } = useStoredToken();
   const [authMode, setAuthMode] = useState<AuthMode>("login");
+  const [locationSearch, setLocationSearch] = useState("");
   const [notice, setNotice] = useState("Klar");
 
   const dashboardQuery = useQuery({ queryKey: ["dashboard"], queryFn: getDashboard });
@@ -68,6 +73,7 @@ export default function CleanWashApp() {
   const plans = plansQuery.data ?? EMPTY_PLANS;
   const profile = profileQuery.data;
   const dashboard = dashboardQuery.data;
+  const washesQueryKey = ["washes", token] as const;
 
   const currentPlanName = useMemo(() => {
     if (profile?.plan_name) {
@@ -77,9 +83,22 @@ export default function CleanWashApp() {
     return plans[1]?.name ?? plans[0]?.name ?? "Plus";
   }, [plans, profile]);
 
+  const filteredLocations = useMemo(() => {
+    const search = locationSearch.trim().toLowerCase();
+
+    if (!search) {
+      return locations;
+    }
+
+    return locations.filter((location) =>
+      [location.name, location.city, location.address].some((value) =>
+        value.toLowerCase().includes(search),
+      ),
+    );
+  }, [locationSearch, locations]);
+
   function saveSession(session: { token: string }) {
-    window.localStorage.setItem("cleanwash_token", session.token);
-    setToken(session.token);
+    saveToken(session.token);
     setNotice("Du er logget ind");
     void queryClient.invalidateQueries({ queryKey: ["me"] });
     void queryClient.invalidateQueries({ queryKey: ["washes"] });
@@ -97,6 +116,21 @@ export default function CleanWashApp() {
     onError: (error) => setNotice(error.message),
   });
 
+  const forgotPasswordMutation = useMutation({
+    mutationFn: forgotPassword,
+    onSuccess: (response) => setNotice(response.message),
+    onError: (error) => setNotice(error.message),
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: resetPassword,
+    onSuccess: (response) => {
+      setNotice(response.message);
+      setAuthMode("login");
+    },
+    onError: (error) => setNotice(error.message),
+  });
+
   const updateMutation = useMutation({
     mutationFn: (payload: UpdateProfilePayload) => updateMe(token ?? "", payload),
     onSuccess: () => {
@@ -109,17 +143,43 @@ export default function CleanWashApp() {
   const washMutation = useMutation({
     mutationFn: (payload: { locationId: number; washType: string }) =>
       createWash(token ?? "", payload.locationId, payload.washType),
+    onMutate: async (payload) => {
+      await queryClient.cancelQueries({ queryKey: washesQueryKey });
+
+      const previousWashes = queryClient.getQueryData<Wash[]>(washesQueryKey) ?? [];
+      const location = locations.find((item) => item.location_id === payload.locationId);
+      const optimisticWash: Wash = {
+        wash_id: `optimistic-${Date.now()}`,
+        wash_type: payload.washType,
+        washed_at: new Date().toISOString(),
+        location_name: location?.name ?? "CleanWash",
+        location_city: location?.city ?? "Ukendt",
+        is_optimistic: true,
+      };
+
+      queryClient.setQueryData<Wash[]>(washesQueryKey, [optimisticWash, ...previousWashes]);
+      setNotice("Vasken registreres...");
+
+      return { previousWashes };
+    },
     onSuccess: () => {
       setNotice("Vasken er registreret");
+    },
+    onError: (error, _payload, context) => {
+      if (context?.previousWashes) {
+        queryClient.setQueryData<Wash[]>(washesQueryKey, context.previousWashes);
+      }
+
+      setNotice(error.message);
+    },
+    onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ["washes"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
-    onError: (error) => setNotice(error.message),
   });
 
   function handleLogout() {
-    window.localStorage.removeItem("cleanwash_token");
-    setToken(null);
+    clearToken();
     setNotice("Du er logget ud");
     queryClient.removeQueries({ queryKey: ["me"] });
     queryClient.removeQueries({ queryKey: ["washes"] });
@@ -133,6 +193,14 @@ export default function CleanWashApp() {
     signupMutation.mutate(payload);
   }
 
+  function handleForgotPassword(payload: ForgotPasswordPayload) {
+    forgotPasswordMutation.mutate(payload);
+  }
+
+  function handleResetPassword(payload: ResetPasswordPayload) {
+    resetPasswordMutation.mutate(payload);
+  }
+
   function handleCreateWash(locationId: number, washType: string) {
     if (!token) {
       setNotice("Log ind for at registrere en vask");
@@ -143,7 +211,11 @@ export default function CleanWashApp() {
   }
 
   const totals = dashboard?.totals;
-  const isAuthLoading = loginMutation.isPending || signupMutation.isPending;
+  const isAuthLoading =
+    loginMutation.isPending ||
+    signupMutation.isPending ||
+    forgotPasswordMutation.isPending ||
+    resetPasswordMutation.isPending;
   const apiStatus = dashboardQuery.isError ? "Backend offline" : notice;
 
   return (
@@ -179,9 +251,13 @@ export default function CleanWashApp() {
             <LocationList
               canCreateWash={Boolean(token)}
               currentPlanName={currentPlanName}
+              hasError={locationsQuery.isError}
+              isLoading={locationsQuery.isLoading}
               isCreatingWash={washMutation.isPending}
-              locations={locations}
+              locations={filteredLocations}
               onCreateWash={handleCreateWash}
+              onSearchChange={setLocationSearch}
+              search={locationSearch}
             />
           </div>
 
@@ -201,8 +277,10 @@ export default function CleanWashApp() {
                 isLoading={isAuthLoading}
                 locations={locations}
                 mode={authMode}
+                onForgotPassword={handleForgotPassword}
                 onLogin={handleLogin}
                 onModeChange={setAuthMode}
+                onResetPassword={handleResetPassword}
                 onSignup={handleSignup}
                 plans={plans}
               />

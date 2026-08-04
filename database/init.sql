@@ -1,6 +1,8 @@
 CREATE DATABASE IF NOT EXISTS cleanwash;
 USE cleanwash;
 
+DROP TABLE IF EXISTS password_reset_tokens;
+DROP TABLE IF EXISTS email_outbox;
 DROP TABLE IF EXISTS wash_history;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS plans;
@@ -48,6 +50,26 @@ CREATE TABLE wash_history (
     FOREIGN KEY (location_id) REFERENCES locations(location_id)
 );
 
+CREATE TABLE email_outbox (
+    email_id CHAR(32) PRIMARY KEY,
+    user_id CHAR(32),
+    email_to VARCHAR(120) NOT NULL,
+    subject VARCHAR(120) NOT NULL,
+    body TEXT NOT NULL,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+CREATE TABLE password_reset_tokens (
+    reset_id CHAR(32) PRIMARY KEY,
+    user_id CHAR(32) NOT NULL,
+    reset_key CHAR(32) NOT NULL UNIQUE,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
 INSERT INTO locations (name, city, address, opening_hours, queue_minutes, image) VALUES
 ('CleanWash Tilst', 'Tilst', 'Blomstervej 12', '06:00 - 22:00', 4, '/location-tilst.webp'),
 ('CleanWash Viby', 'Viby', 'Sonderhoj 9', '06:00 - 22:00', 7, '/location-viby.webp'),
@@ -82,3 +104,6 @@ INSERT INTO wash_history (wash_id, user_id, location_id, wash_type, washed_at) V
 ('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '11111111111111111111111111111111', 1, 'Plus vask', DATE_SUB(NOW(), INTERVAL 5 DAY)),
 ('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', '11111111111111111111111111111111', 2, 'Plus vask', DATE_SUB(NOW(), INTERVAL 3 DAY)),
 ('cccccccccccccccccccccccccccccccc', '11111111111111111111111111111111', 1, 'Plus vask', DATE_SUB(NOW(), INTERVAL 1 DAY));
+
+INSERT INTO email_outbox (email_id, user_id, email_to, subject, body) VALUES
+('dddddddddddddddddddddddddddddddd', '11111111111111111111111111111111', 'demo@cleanwash.dk', 'Velkommen til CleanWash', 'Hej Demo. Din demo-bruger er klar.');

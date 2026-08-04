@@ -8,3 +8,7 @@ __pycache__/
 *.log
 dev-server.*.log
 .vs/
+cypress/screenshots/
+cypress/videos/
+frontend/cypress/screenshots/
+frontend/cypress/videos/

@@ -50,6 +50,7 @@ export type Wash = {
   washed_at: string;
   location_name: string;
   location_city: string;
+  is_optimistic?: boolean;
 };
 
 export type LoginPayload = {
@@ -65,6 +66,15 @@ export type SignupPayload = LoginPayload & {
   plan_id: number;
 };
 
+export type ForgotPasswordPayload = {
+  email: string;
+};
+
+export type ResetPasswordPayload = {
+  reset_key: string;
+  password: string;
+};
+
 export type UpdateProfilePayload = {
   first_name: string;
   license_plate: string;
@@ -76,4 +86,8 @@ export type UpdateProfilePayload = {
 export type Session = {
   token: string;
   user: User;
+};
+
+export type ApiMessage = {
+  message: string;
 };

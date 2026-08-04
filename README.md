@@ -49,6 +49,8 @@ GET  /api/locations       Henter vaskehaller
 GET  /api/plans           Henter abonnementer
 POST /api/sign-up         Opretter bruger
 POST /api/login           Logger bruger ind
+POST /api/forgot-password Sender reset-email
+POST /api/reset-password  Nulstiller kodeord
 GET  /api/me              Henter profil
 PUT  /api/me              Opdaterer profil
 GET  /api/wash-history    Henter vaskehistorik
@@ -70,9 +72,22 @@ database/
 frontend/
   app/                Next.js app router
   components/         Genbrugelige UI-komponenter
+  hooks/              Custom React hooks
   lib/api.ts          Alle kald til backend samlet et sted
   types/app.ts        Fælles TypeScript-typer
+  cypress/            E2E-test med Cypress
 ```
+
+## Test
+
+```bash
+cd frontend
+npm run lint
+npm run build
+npm run e2e
+```
+
+`npm run e2e` kræver, at frontend kører på http://localhost:3000.
 
 ## Hvorfor denne version er simplere
 
@@ -81,3 +96,31 @@ frontend/
 - Frontend kalder alle endpoints fra `frontend/lib/api.ts`.
 - Endpoint-navne matcher brugerflowet: opret bruger, login, profil og vaskehistorik.
 - Databasen har kun de tabeller, som appen faktisk bruger.
+
+## Krav fra eksamens-PDF
+
+```text
+Frontend:
+- Component-based architecture: components/
+- useState og props: CleanWashApp, AuthPanel, ProfilePanel
+- useEffect: hooks/useStoredToken.ts
+- Custom hook: hooks/useStoredToken.ts
+- Fetch og TanStack Query: lib/api.ts og CleanWashApp
+- Loading/error/empty states: LocationList og WashHistory
+- Form validation: AuthPanel og validators.py
+- JWT authentication: login, localStorage token og Authorization header
+- Search/filter: søgning i vaskehaller
+- Optimistic UI update: registrer vask opdaterer historik før server-svar
+- Cypress E2E: cypress/e2e/cleanwash.cy.ts
+
+Backend:
+- REST API: app.py endpoints
+- Validering af brugerinput: validators.py
+- JSON responses: alle endpoints returnerer jsonify
+- JWT: Flask-JWT-Extended
+- Hashed passwords: generate_password_hash
+- HTTP status codes: 200, 201, 400, 401, 404, 409, 503
+- Welcome email: email_outbox ved signup
+- Forgot password: /api/forgot-password og /api/reset-password
+- Relationel database: MariaDB tabeller med foreign keys
+```

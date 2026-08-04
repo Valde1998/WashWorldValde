@@ -211,6 +211,10 @@ label {
   margin-bottom: 14px;
 }
 
+.search-field {
+  min-width: min(260px, 100%);
+}
+
 .location-grid {
   display: grid;
   gap: 16px;
@@ -271,6 +275,18 @@ label {
   display: grid;
   gap: 14px;
   margin-top: 18px;
+}
+
+.form-error {
+  background: #ffe7e4;
+  border: 1px solid rgba(185, 74, 72, 0.25);
+  border-radius: 8px;
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+  margin: 14px 0 0;
+  padding: 10px 12px;
 }
 
 label {

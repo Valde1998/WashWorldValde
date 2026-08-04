@@ -1,8 +1,11 @@
 import type {
+  ApiMessage,
   Dashboard,
+  ForgotPasswordPayload,
   Location,
   LoginPayload,
   Plan,
+  ResetPasswordPayload,
   Session,
   SignupPayload,
   UpdateProfilePayload,
@@ -18,6 +21,8 @@ const ENDPOINTS = {
   login: "/api/login",
   me: "/api/me",
   plans: "/api/plans",
+  forgotPassword: "/api/forgot-password",
+  resetPassword: "/api/reset-password",
   signup: "/api/sign-up",
   washHistory: "/api/wash-history",
 } as const;
@@ -70,6 +75,20 @@ export function login(payload: LoginPayload) {
 
 export function signup(payload: SignupPayload) {
   return request<Session>(ENDPOINTS.signup, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function forgotPassword(payload: ForgotPasswordPayload) {
+  return request<ApiMessage>(ENDPOINTS.forgotPassword, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function resetPassword(payload: ResetPasswordPayload) {
+  return request<ApiMessage>(ENDPOINTS.resetPassword, {
     method: "POST",
     body: JSON.stringify(payload),
   });
