@@ -2,7 +2,6 @@ services:
   backend:
     build:
       context: ./backend
-    container_name: washworld_backend
     ports:
       - "127.0.0.1:5001:5001"
     environment:
@@ -21,7 +20,6 @@ services:
   frontend:
     build:
       context: ./frontend
-    container_name: washworld_frontend
     ports:
       - "127.0.0.1:3000:3000"
     environment:
@@ -31,7 +29,6 @@ services:
 
   mariadb:
     image: mariadb:10.6.20
-    container_name: washworld_mariadb
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: cleanwash
@@ -46,7 +43,6 @@ services:
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    container_name: washworld_phpmyadmin
     depends_on:
       mariadb:
         condition: service_healthy
