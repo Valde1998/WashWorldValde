@@ -10,6 +10,8 @@ import type {
   SignupPayload,
   UpdateProfilePayload,
   User,
+  VerificationChallenge,
+  VerifyEmailPayload,
   Wash,
 } from "@/types/app";
 
@@ -24,6 +26,8 @@ const ENDPOINTS = {
   forgotPassword: "/api/forgot-password",
   resetPassword: "/api/reset-password",
   signup: "/api/sign-up",
+  verifyEmail: "/api/verify-email",
+  resendVerification: "/api/resend-verification",
   washHistory: "/api/wash-history",
 } as const;
 
@@ -35,6 +39,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public readonly status: number,
+    public readonly data: unknown = null,
   ) {
     super(message);
     this.name = "ApiError";
@@ -83,7 +88,7 @@ async function request<T>(path: string, options: RequestOptions = {}) {
   }
 
   if (!response.ok) {
-    throw new ApiError(responseErrorMessage(data), response.status);
+    throw new ApiError(responseErrorMessage(data), response.status, data);
   }
 
   return data as T;
@@ -109,9 +114,23 @@ export function login(payload: LoginPayload) {
 }
 
 export function signup(payload: SignupPayload) {
-  return request<Session>(ENDPOINTS.signup, {
+  return request<VerificationChallenge>(ENDPOINTS.signup, {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export function verifyEmail(payload: VerifyEmailPayload) {
+  return request<Session>(ENDPOINTS.verifyEmail, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function resendVerification(email: string) {
+  return request<ApiMessage>(ENDPOINTS.resendVerification, {
+    method: "POST",
+    body: JSON.stringify({ email }),
   });
 }
 

@@ -2,6 +2,7 @@ CREATE DATABASE IF NOT EXISTS cleanwash;
 USE cleanwash;
 
 DROP TABLE IF EXISTS password_reset_tokens;
+DROP TABLE IF EXISTS email_verification_tokens;
 DROP TABLE IF EXISTS email_outbox;
 DROP TABLE IF EXISTS wash_history;
 DROP TABLE IF EXISTS users;
@@ -66,6 +67,18 @@ CREATE TABLE password_reset_tokens (
     reset_key CHAR(32) NOT NULL UNIQUE,
     expires_at DATETIME NOT NULL,
     used_at DATETIME,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+CREATE TABLE email_verification_tokens (
+    verification_id CHAR(32) PRIMARY KEY,
+    user_id CHAR(32) NOT NULL UNIQUE,
+    code_hash VARCHAR(255) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    last_sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    verified_at DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );

@@ -1,16 +1,15 @@
 # WashWorld
 
-WashWorld er en overskuelig fullstack-app til administration af bilvask:
+WashWorld er en mobilorienteret fullstack-app til medlemskab og bilvask. Brugerflowet følger den tilhørende Figma-prototype og samler oprettelse, medlemskab, QR-kode, vaskehistorik, vaskehaller og profil i én app.
+
+## Teknologi
 
 - Next.js, React og TypeScript i frontend
-- React Query til data mellem frontend og backend
-- ApexCharts til dashboard-graf
-- Flask i backend
+- TanStack Query til data mellem frontend og backend
+- ApexCharts til aktivitetsgrafen
+- Flask og JWT i backend
 - MariaDB som database
-- phpMyAdmin til at kigge i databasen
-- Docker Compose til at starte det hele samlet
-
-Frontendens design er holdt som et dashboard, men flowet er gjort mere overskueligt, så projektet er nemmere at forklare til eksamen.
+- Docker Compose til at starte hele løsningen
 
 ## Start projektet
 
@@ -20,7 +19,7 @@ docker compose up --build
 
 Når containerne kører:
 
-- Frontend: http://localhost:3000
+- App: http://localhost:3000
 - Backend: http://localhost:5001
 - phpMyAdmin: http://localhost:8080
 
@@ -31,51 +30,63 @@ Email: demo@washworld.dk
 Kodeord: kodeord123
 ```
 
-## Flow gennem systemet
+## Brugerflow
 
-```text
-Bruger i frontend
-  -> frontend/lib/api.ts
-  -> Flask endpoints i backend/app.py
-  -> database.py
-  -> MariaDB tabeller i database/init.sql
-  -> JSON tilbage til frontend
-```
+1. Log ind, opret bruger eller nulstil adgangskode.
+2. Vælg medlemskab og gennemfør den simulerede kortbetaling.
+3. Brug medlems-QR-koden ved vaskehallen.
+4. Se aktivitet, statistik og vaskehistorik.
+5. Find og filtrer vaskehaller, og registrer en vask.
+6. Opdater profiloplysninger eller log ud.
 
-De vigtigste endpoints:
+Oprettelse kræver et gyldigt emailformat, ens emailfelter, et kodeord på mindst otte tegn, nummerplade, telefonnummer og valgt vaskehal. Derefter sendes en 6-cifret engangskode, som skal bruges inden 15 minutter. Kortoplysninger valideres kun i browseren og bliver ikke gemt.
+
+## Gmail og emailbekræftelse
+
+1. Tilbagekald altid en app-adgangskode, som er blevet delt eller vist offentligt.
+2. Opret en ny Google app-adgangskode.
+3. Kopiér `.env.example` til `.env`.
+4. Udfyld `SMTP_USERNAME`, `SMTP_APP_PASSWORD` og `SMTP_FROM` i `.env`.
+5. Genstart backend med `docker compose up --build -d`.
+
+`.env` er ignoreret af Git og må aldrig committed. Engangskoden gemmes kun som et hash i databasen, udløber efter 15 minutter og låses efter fem forkerte forsøg. En ny kode kan tidligst sendes efter 60 sekunder.
+
+## API
 
 ```text
 GET  /api/locations       Henter vaskehaller
-GET  /api/plans           Henter abonnementer
+GET  /api/plans           Henter medlemskaber
 POST /api/sign-up         Opretter bruger
 POST /api/login           Logger bruger ind
-POST /api/forgot-password Sender reset-email
+POST /api/verify-email    Bekræfter 6-cifret emailkode
+POST /api/resend-verification Sender en ny emailkode
+POST /api/forgot-password Sender nulstillingskode
 POST /api/reset-password  Nulstiller kodeord
 GET  /api/me              Henter profil
 PUT  /api/me              Opdaterer profil
 GET  /api/wash-history    Henter vaskehistorik
 POST /api/wash-history    Registrerer en vask
-GET  /api/dashboard       Henter tal til dashboardet
+GET  /api/dashboard       Henter aktivitetstal
 ```
 
-## Projektets struktur
+## Projektstruktur
 
 ```text
 backend/
-  app.py              Flask app, endpoints og fejlhåndtering
-  database.py         Små databasefunktioner
-  validators.py       Input-validering
+  app.py                  Flask-app og endpoints
+  database.py             Databasefunktioner
+  validators.py           Servervalidering
 
 database/
-  init.sql            Tabeller og testdata
+  init.sql                Tabeller og demo-data
 
 frontend/
-  app/                Next.js app router
-  components/         Genbrugelige UI-komponenter
-  hooks/              Custom React hooks
-  lib/api.ts          Alle kald til backend samlet et sted
-  types/app.ts        Fælles TypeScript-typer
-  cypress/            E2E-test med Cypress
+  app/                    Next.js App Router og globalt design
+  components/mobile/      Mobilflow, appskal og bundnavigation
+  hooks/                  Custom React-hooks
+  lib/api.ts              Samlede API-kald
+  types/app.ts            Fælles TypeScript-typer
+  cypress/                E2E-tests
 ```
 
 ## Test
@@ -90,40 +101,16 @@ cd ../backend
 python -m unittest discover -s tests
 ```
 
-`npm run e2e` kræver, at frontend kører på http://localhost:3000.
+`npm run e2e` kræver, at appen kører på http://localhost:3000.
 
-## Hvorfor denne version er simplere
+## Centrale eksamenspunkter
 
-- Backendens endpoints ligger samlet i `backend/app.py`, så flowet er nemt at fremlægge.
-- Databasekode og validering ligger stadig i egne filer, så `app.py` ikke bliver unødigt rodet.
-- Frontend kalder alle endpoints fra `frontend/lib/api.ts`.
-- Endpoint-navne matcher brugerflowet: opret bruger, login, profil og vaskehistorik.
-- Databasen har kun de tabeller, som appen faktisk bruger.
-
-## Krav fra eksamens-PDF
-
-```text
-Frontend:
-- Component-based architecture: components/
-- useState og props: WashWorldApp, AuthPanel, ProfilePanel
-- useEffect: hooks/useStoredToken.ts
-- Custom hook: hooks/useStoredToken.ts
-- Fetch og TanStack Query: lib/api.ts og WashWorldApp
-- Loading/error/empty states: LocationList og WashHistory
-- Form validation: AuthPanel og validators.py
-- JWT authentication: login, localStorage token og Authorization header
-- Search/filter: søgning i vaskehaller
-- Optimistic UI update: registrer vask opdaterer historik før server-svar
-- Cypress E2E: cypress/e2e/washworld.cy.ts
-
-Backend:
-- REST API: app.py endpoints
-- Validering af brugerinput: validators.py
-- JSON responses: alle endpoints returnerer jsonify
-- JWT: Flask-JWT-Extended
-- Hashed passwords: generate_password_hash
-- HTTP status codes: 200, 201, 400, 401, 404, 409, 503
-- Welcome email: email_outbox ved signup
-- Forgot password: /api/forgot-password og /api/reset-password
-- Relationel database: MariaDB tabeller med foreign keys
-```
+- Komponentbaseret React-arkitektur og state via hooks
+- Fetch og TanStack Query med loading-, fejl- og tomme tilstande
+- Klient- og servervalidering af brugerinput
+- JWT-login og token i localStorage
+- Søgning og filtrering af vaskehaller
+- Optimistisk opdatering ved registrering af vask
+- Cypress E2E-tests af login, emailvalidering og udløbet session
+- REST API, korrekte HTTP-statuskoder og relationel database
+- Hashede kodeord, velkomstmail og nulstilling af adgangskode

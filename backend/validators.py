@@ -5,7 +5,7 @@ class ValidationError(ValueError):
     pass
 
 
-EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+EMAIL_PATTERN = re.compile(r"^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$", re.IGNORECASE)
 LICENSE_PATTERN = re.compile(r"^[A-Z0-9 -]{2,20}$")
 
 
@@ -30,8 +30,25 @@ def optional_text(data, field, max_length=120):
 def email(data):
     value = required_text(data, "email", "Email").lower()
 
-    if not EMAIL_PATTERN.match(value):
+    local_part, _, domain = value.partition("@")
+    domain_labels = domain.split(".")
+
+    if (
+        not EMAIL_PATTERN.fullmatch(value)
+        or ".." in value
+        or len(local_part) > 64
+        or any(label.startswith("-") or label.endswith("-") for label in domain_labels)
+    ):
         raise ValidationError("Email is invalid")
+
+    return value
+
+
+def verification_code(data):
+    value = required_text(data, "code", "Verification code", min_length=6, max_length=6)
+
+    if not value.isdigit():
+        raise ValidationError("Verification code must contain 6 digits")
 
     return value
 

@@ -1,3 +1,4 @@
+import secrets
 import uuid
 
 from flask import Flask, jsonify, request
@@ -13,6 +14,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import Config
 from database import execute, fetch_all, fetch_one, run_transaction
+from email_service import EmailDeliveryError, send_email
 from validators import (
     ValidationError,
     email,
@@ -21,6 +23,7 @@ from validators import (
     password,
     positive_int,
     required_text,
+    verification_code,
 )
 
 app = Flask(__name__)
@@ -66,6 +69,60 @@ def queue_email(cursor, user_id, email_to, subject, body):
         VALUES (%s, %s, %s, %s, %s)
         """,
         (uuid.uuid4().hex, user_id, email_to, subject, body),
+    )
+
+
+def ensure_runtime_schema():
+    execute(
+        """
+        CREATE TABLE IF NOT EXISTS email_verification_tokens (
+            verification_id CHAR(32) PRIMARY KEY,
+            user_id CHAR(32) NOT NULL UNIQUE,
+            code_hash VARCHAR(255) NOT NULL,
+            expires_at DATETIME NOT NULL,
+            attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            last_sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            verified_at DATETIME,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        )
+        """
+    )
+
+
+def make_verification_code():
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
+def verification_email(first_name, code):
+    subject = "Bekræft din email til WashWorld"
+    body = (
+        f"Hej {first_name}.\n\n"
+        f"Din bekræftelseskode er: {code}\n\n"
+        f"Koden udløber om {Config.EMAIL_VERIFICATION_TTL_MINUTES} minutter. "
+        "Hvis du ikke har oprettet en WashWorld-konto, kan du ignorere denne email."
+    )
+    return subject, body
+
+
+def deliver_email(email_to, subject, body):
+    try:
+        send_email(email_to, subject, body)
+        return True
+    except EmailDeliveryError as error:
+        print(f"Email delivery failed: {error}", flush=True)
+        return False
+
+
+def allow_immediate_verification_resend(user_id):
+    execute(
+        """
+        UPDATE email_verification_tokens
+        SET last_sent_at = DATE_SUB(NOW(), INTERVAL 1 HOUR)
+        WHERE user_id = %s
+          AND verified_at IS NULL
+        """,
+        (user_id,),
     )
 
 
@@ -161,13 +218,39 @@ def sign_up():
     location_id = positive_int(data, "location_id", "Location")
     plan_id = positive_int(data, "plan_id", "Plan")
 
-    if fetch_one("SELECT user_id FROM users WHERE email = %s", (user_email,)):
+    existing_user = fetch_one(
+        """
+        SELECT
+            users.user_id,
+            email_verification_tokens.verification_id,
+            email_verification_tokens.verified_at
+        FROM users
+        LEFT JOIN email_verification_tokens
+          ON email_verification_tokens.user_id = users.user_id
+        WHERE users.email = %s
+        """,
+        (user_email,),
+    )
+
+    if existing_user:
+        if existing_user["verification_id"] and not existing_user["verified_at"]:
+            return jsonify(
+                {
+                    "error": "Emailen mangler stadig at blive bekræftet",
+                    "verification_required": True,
+                    "email": user_email,
+                }
+            ), 409
+
         return jsonify({"error": "Email is already in use"}), 409
 
     validate_location_and_plan(location_id, plan_id)
 
     user_id = uuid.uuid4().hex
     password_hash = generate_password_hash(user_password)
+    code = make_verification_code()
+    code_hash = generate_password_hash(code)
+    verification_subject, verification_body = verification_email(first_name, code)
 
     def create_user(cursor):
         cursor.execute(
@@ -195,17 +278,49 @@ def sign_up():
                 plan_id,
             ),
         )
+        cursor.execute(
+            """
+            INSERT INTO email_verification_tokens (
+                verification_id,
+                user_id,
+                code_hash,
+                expires_at
+            )
+            VALUES (%s, %s, %s, DATE_ADD(NOW(), INTERVAL %s MINUTE))
+            """,
+            (
+                uuid.uuid4().hex,
+                user_id,
+                code_hash,
+                Config.EMAIL_VERIFICATION_TTL_MINUTES,
+            ),
+        )
         queue_email(
             cursor,
             user_id,
             user_email,
-            "Velkommen til WashWorld",
-            f"Hej {first_name}. Din WashWorld-konto er oprettet, og dit abonnement er aktivt.",
+            verification_subject,
+            verification_body,
         )
 
     run_transaction(create_user)
 
-    return create_session_response(user_id, 201)
+    email_sent = deliver_email(user_email, verification_subject, verification_body)
+    if not email_sent:
+        allow_immediate_verification_resend(user_id)
+
+    return jsonify(
+        {
+            "verification_required": True,
+            "email": user_email,
+            "email_sent": email_sent,
+            "message": (
+                "Vi har sendt en 6-cifret kode til din email"
+                if email_sent
+                else "Kontoen er oprettet, men emailen kunne ikke sendes. Kontrollér SMTP og prøv igen."
+            ),
+        }
+    ), 201
 
 
 @app.post("/api/login")
@@ -214,12 +329,186 @@ def login():
 
     user_email = email(data)
     user_password = password(data)
-    user = fetch_one("SELECT user_id, password_hash FROM users WHERE email = %s", (user_email,))
+    user = fetch_one(
+        """
+        SELECT
+            users.user_id,
+            users.password_hash,
+            email_verification_tokens.verification_id,
+            email_verification_tokens.verified_at
+        FROM users
+        LEFT JOIN email_verification_tokens
+          ON email_verification_tokens.user_id = users.user_id
+        WHERE users.email = %s
+        """,
+        (user_email,),
+    )
 
     if not user or not check_password_hash(user["password_hash"], user_password):
         return jsonify({"error": "Email or password is wrong"}), 401
 
+    if user["verification_id"] and not user["verified_at"]:
+        return jsonify(
+            {
+                "error": "Bekræft din email, før du logger ind",
+                "verification_required": True,
+                "email": user_email,
+            }
+        ), 403
+
     return create_session_response(user["user_id"])
+
+
+@app.post("/api/verify-email")
+def verify_email():
+    data = request.get_json(silent=True) or {}
+    user_email = email(data)
+    code = verification_code(data)
+    verification = fetch_one(
+        """
+        SELECT
+            email_verification_tokens.verification_id,
+            email_verification_tokens.user_id,
+            email_verification_tokens.code_hash,
+            email_verification_tokens.expires_at,
+            email_verification_tokens.attempts,
+            email_verification_tokens.verified_at,
+            users.first_name,
+            users.email
+        FROM email_verification_tokens
+        JOIN users ON users.user_id = email_verification_tokens.user_id
+        WHERE users.email = %s
+        LIMIT 1
+        """,
+        (user_email,),
+    )
+
+    if not verification or verification["verified_at"]:
+        return jsonify({"error": "Bekræftelseskoden er ugyldig eller allerede brugt"}), 400
+
+    if verification["attempts"] >= 5:
+        return jsonify({"error": "For mange forsøg. Send en ny kode."}), 429
+
+    active_verification = fetch_one(
+        """
+        SELECT verification_id
+        FROM email_verification_tokens
+        WHERE verification_id = %s
+          AND expires_at > NOW()
+        """,
+        (verification["verification_id"],),
+    )
+    if not active_verification:
+        return jsonify({"error": "Koden er udløbet. Send en ny kode."}), 400
+
+    if not check_password_hash(verification["code_hash"], code):
+        execute(
+            """
+            UPDATE email_verification_tokens
+            SET attempts = attempts + 1
+            WHERE verification_id = %s
+              AND verified_at IS NULL
+            """,
+            (verification["verification_id"],),
+        )
+        return jsonify({"error": "Bekræftelseskoden er forkert"}), 400
+
+    welcome_subject = "Velkommen til WashWorld"
+    welcome_body = (
+        f"Hej {verification['first_name']}. Din email er bekræftet, "
+        "og dit WashWorld-medlemskab er nu aktivt."
+    )
+
+    def mark_verified(cursor):
+        cursor.execute(
+            """
+            UPDATE email_verification_tokens
+            SET verified_at = NOW()
+            WHERE verification_id = %s
+              AND verified_at IS NULL
+              AND expires_at > NOW()
+            """,
+            (verification["verification_id"],),
+        )
+        if cursor.rowcount != 1:
+            raise ValidationError("Bekræftelseskoden er ugyldig eller udløbet")
+        queue_email(
+            cursor,
+            verification["user_id"],
+            verification["email"],
+            welcome_subject,
+            welcome_body,
+        )
+
+    run_transaction(mark_verified)
+    deliver_email(verification["email"], welcome_subject, welcome_body)
+    return create_session_response(verification["user_id"])
+
+
+@app.post("/api/resend-verification")
+def resend_verification():
+    data = request.get_json(silent=True) or {}
+    user_email = email(data)
+    verification = fetch_one(
+        """
+        SELECT
+            email_verification_tokens.verification_id,
+            email_verification_tokens.user_id,
+            email_verification_tokens.verified_at,
+            TIMESTAMPDIFF(SECOND, email_verification_tokens.last_sent_at, NOW()) AS seconds_since_send,
+            users.first_name,
+            users.email
+        FROM email_verification_tokens
+        JOIN users ON users.user_id = email_verification_tokens.user_id
+        WHERE users.email = %s
+        LIMIT 1
+        """,
+        (user_email,),
+    )
+
+    if not verification or verification["verified_at"]:
+        return jsonify({"message": "Hvis emailen afventer bekræftelse, er der sendt en ny kode"}), 200
+
+    if verification["seconds_since_send"] < Config.EMAIL_VERIFICATION_RESEND_SECONDS:
+        seconds_left = Config.EMAIL_VERIFICATION_RESEND_SECONDS - verification["seconds_since_send"]
+        return jsonify({"error": f"Vent {seconds_left} sekunder, før du sender igen"}), 429
+
+    code = make_verification_code()
+    code_hash = generate_password_hash(code)
+    subject, body = verification_email(verification["first_name"], code)
+
+    def replace_code(cursor):
+        cursor.execute(
+            """
+            UPDATE email_verification_tokens
+            SET
+                code_hash = %s,
+                expires_at = DATE_ADD(NOW(), INTERVAL %s MINUTE),
+                attempts = 0,
+                last_sent_at = NOW()
+            WHERE verification_id = %s
+              AND verified_at IS NULL
+            """,
+            (
+                code_hash,
+                Config.EMAIL_VERIFICATION_TTL_MINUTES,
+                verification["verification_id"],
+            ),
+        )
+        queue_email(
+            cursor,
+            verification["user_id"],
+            verification["email"],
+            subject,
+            body,
+        )
+
+    run_transaction(replace_code)
+    if not deliver_email(verification["email"], subject, body):
+        allow_immediate_verification_resend(verification["user_id"])
+        return jsonify({"error": "Emailen kunne ikke sendes. Kontrollér SMTP-opsætningen."}), 503
+
+    return jsonify({"message": "En ny bekræftelseskode er sendt"}), 200
 
 
 @app.post("/api/forgot-password")
@@ -230,6 +519,8 @@ def forgot_password():
 
     if user:
         reset_key = uuid.uuid4().hex
+        reset_subject = "Nulstil dit WashWorld kodeord"
+        reset_body = f"Hej {user['first_name']}. Brug denne reset-kode i appen: {reset_key}"
 
         def create_reset(cursor):
             cursor.execute(
@@ -243,11 +534,12 @@ def forgot_password():
                 cursor,
                 user["user_id"],
                 user["email"],
-                "Nulstil dit WashWorld kodeord",
-                f"Hej {user['first_name']}. Brug denne reset-kode i appen: {reset_key}",
+                reset_subject,
+                reset_body,
             )
 
         run_transaction(create_reset)
+        deliver_email(user["email"], reset_subject, reset_body)
 
     return jsonify({"message": "Hvis emailen findes, er der sendt en reset-email"}), 200
 
@@ -278,6 +570,8 @@ def reset_password():
         return jsonify({"error": "Reset key is invalid or expired"}), 400
 
     new_password_hash = generate_password_hash(new_password)
+    changed_subject = "Dit WashWorld kodeord er ændret"
+    changed_body = "Dit kodeord er nu ændret. Hvis det ikke var dig, skal du kontakte support."
 
     def update_password(cursor):
         cursor.execute(
@@ -306,11 +600,12 @@ def reset_password():
             cursor,
             reset["user_id"],
             reset["email"],
-            "Dit WashWorld kodeord er ændret",
-            "Dit kodeord er nu ændret. Hvis det ikke var dig, skal du kontakte support.",
+            changed_subject,
+            changed_body,
         )
 
     run_transaction(update_password)
+    deliver_email(reset["email"], changed_subject, changed_body)
 
     return jsonify({"message": "Password was reset"}), 200
 
@@ -422,4 +717,5 @@ def unknown_error(error):
 
 
 if __name__ == "__main__":
+    ensure_runtime_schema()
     app.run(host="0.0.0.0", port=5001, debug=Config.DEBUG)

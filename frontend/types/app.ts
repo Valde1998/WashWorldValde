@@ -66,6 +66,18 @@ export type SignupPayload = LoginPayload & {
   plan_id: number;
 };
 
+export type VerificationChallenge = {
+  verification_required: true;
+  email: string;
+  email_sent: boolean;
+  message: string;
+};
+
+export type VerifyEmailPayload = {
+  email: string;
+  code: string;
+};
+
 export type ForgotPasswordPayload = {
   email: string;
 };

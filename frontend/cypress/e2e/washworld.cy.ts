@@ -86,16 +86,84 @@ describe("WashWorld dashboard", () => {
     cy.intercept("GET", "**/api/wash-history", []);
   });
 
-  it("filters locations and logs in", () => {
+  it("logs in and filters locations", () => {
     cy.visit("/");
 
-    cy.contains("Vaskehal dashboard");
+    cy.contains("Ren bil. Nemt medlemskab.");
+    cy.contains("button", "Log ind").click();
+    cy.contains("h1", "Log ind");
+    cy.contains("button", "Log ind").click();
+    cy.contains("Hej, Demo");
+
+    cy.contains("button", "Vaskehaller").click();
     cy.get('input[aria-label="Søg efter vaskehal"]').type("Viby");
     cy.contains("Viby");
     cy.contains("Tilst").should("not.exist");
+  });
 
+  it("validates email before signup can continue", () => {
+    cy.visit("/");
+    cy.contains("button", "Bliv medlem").click();
+    cy.contains("h1", "Dine oplysninger");
+
+    cy.contains("label", "Navn").find("input").type("Valde");
+    cy.get('input[type="email"]').eq(0).type("ikke-en-email");
+    cy.get('input[type="email"]').eq(1).type("ikke-en-email");
+    cy.contains("label", "Kodeord").find("input").type("kodeord123");
+    cy.contains("label", "Nummerplade").find("input").type("AB 12345");
+    cy.contains("button", "Fortsæt").click();
+
+    cy.contains("Indtast en gyldig emailadresse");
+    cy.contains("h1", "Dine oplysninger");
+  });
+
+  it("requires and verifies the emailed signup code", () => {
+    cy.intercept("POST", "**/api/login", {
+      statusCode: 403,
+      body: {
+        error: "Bekræft din email, før du logger ind",
+        verification_required: true,
+        email: "demo@washworld.dk",
+      },
+    }).as("pendingLogin");
+    cy.intercept("POST", "**/api/resend-verification", {
+      message: "En ny bekræftelseskode er sendt",
+    }).as("resendCode");
+    cy.intercept("POST", "**/api/verify-email", {
+      token: "verified-token",
+      user: {
+        user_id: "11111111111111111111111111111111",
+        first_name: "Demo",
+        email: "demo@washworld.dk",
+        license_plate: "AB 12345",
+        phone: "12345678",
+        location_id: 1,
+        location_name: "WashWorld Tilst",
+        location_city: "Tilst",
+        plan_id: 2,
+        plan_name: "Plus",
+        monthly_price: 149,
+      },
+    }).as("verifyEmail");
+
+    cy.visit("/");
     cy.contains("button", "Log ind").click();
-    cy.contains("Gem profil");
+    cy.contains("button", "Log ind").click();
+    cy.wait("@pendingLogin");
+    cy.contains("h1", "Bekræft din email");
+    cy.contains("demo@washworld.dk");
+
+    cy.contains("button", "Send en ny kode").click();
+    cy.wait("@resendCode");
+    cy.contains("En ny bekræftelseskode er sendt");
+
+    cy.get('input[aria-label="Bekræftelseskode"]').type("123456");
+    cy.contains("button", "Bekræft og log ind").click();
+    cy.wait("@verifyEmail").its("request.body").should("deep.equal", {
+      email: "demo@washworld.dk",
+      code: "123456",
+    });
+    cy.contains("Hej, Demo");
   });
 
   it("clears an expired session and returns to login", () => {
