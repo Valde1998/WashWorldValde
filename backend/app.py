@@ -15,6 +15,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from config import Config
 from database import execute, fetch_all, fetch_one, run_transaction
 from email_service import EmailDeliveryError, send_email
+from washworld_locations import SOURCE_CHECKED_ON, location_records
 from validators import (
     ValidationError,
     email,
@@ -88,6 +89,106 @@ def ensure_runtime_schema():
         )
         """
     )
+    location_columns = (
+        "ADD COLUMN IF NOT EXISTS slug VARCHAR(180)",
+        "ADD COLUMN IF NOT EXISTS postal_code VARCHAR(10)",
+        "ADD COLUMN IF NOT EXISTS latitude DECIMAL(11, 8)",
+        "ADD COLUMN IF NOT EXISTS longitude DECIMAL(11, 8)",
+        "ADD COLUMN IF NOT EXISTS location_type VARCHAR(20) NOT NULL DEFAULT 'washhall'",
+        "ADD COLUMN IF NOT EXISTS halls_count INT NOT NULL DEFAULT 1",
+        "ADD COLUMN IF NOT EXISTS self_wash_count INT NOT NULL DEFAULT 0",
+        "ADD COLUMN IF NOT EXISTS source_url VARCHAR(255)",
+        "ADD COLUMN IF NOT EXISTS source_checked_on DATE",
+    )
+    for column in location_columns:
+        execute(f"ALTER TABLE locations {column}")
+
+
+def sync_washworld_locations():
+    records = list(location_records())
+    records_by_slug = {record["slug"]: record for record in records}
+    preserved_ids = {
+        1: "tilst-blomstervej",
+        2: "viby-gunnar-clausens-vej",
+        3: "hojbjerg-bjodstrupvej",
+    }
+
+    def values(record):
+        return (
+            record["name"],
+            record["city"],
+            record["address"],
+            record["opening_hours"],
+            0,
+            record["image"],
+            record["slug"],
+            record["postal_code"],
+            record["latitude"],
+            record["longitude"],
+            record["location_type"],
+            record["halls_count"],
+            record["self_wash_count"],
+            record["source_url"],
+            SOURCE_CHECKED_ON,
+        )
+
+    update_sql = """
+        UPDATE locations
+        SET
+            name = %s,
+            city = %s,
+            address = %s,
+            opening_hours = %s,
+            queue_minutes = %s,
+            image = %s,
+            slug = %s,
+            postal_code = %s,
+            latitude = %s,
+            longitude = %s,
+            location_type = %s,
+            halls_count = %s,
+            self_wash_count = %s,
+            source_url = %s,
+            source_checked_on = %s
+        WHERE location_id = %s
+    """
+
+    def sync(cursor):
+        for location_id, slug in preserved_ids.items():
+            cursor.execute(update_sql, (*values(records_by_slug[slug]), location_id))
+
+        for record in records:
+            cursor.execute("SELECT location_id FROM locations WHERE slug = %s LIMIT 1", (record["slug"],))
+            existing = cursor.fetchone()
+            if existing:
+                cursor.execute(update_sql, (*values(record), existing[0]))
+                continue
+
+            cursor.execute(
+                """
+                INSERT INTO locations (
+                    name,
+                    city,
+                    address,
+                    opening_hours,
+                    queue_minutes,
+                    image,
+                    slug,
+                    postal_code,
+                    latitude,
+                    longitude,
+                    location_type,
+                    halls_count,
+                    self_wash_count,
+                    source_url,
+                    source_checked_on
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                values(record),
+            )
+
+    run_transaction(sync)
 
 
 def make_verification_code():
@@ -150,7 +251,16 @@ def locations():
             address,
             opening_hours,
             queue_minutes,
-            image
+            image,
+            slug,
+            postal_code,
+            latitude,
+            longitude,
+            location_type,
+            halls_count,
+            self_wash_count,
+            source_url,
+            source_checked_on
         FROM locations
         ORDER BY city
         """
@@ -718,4 +828,5 @@ def unknown_error(error):
 
 if __name__ == "__main__":
     ensure_runtime_schema()
+    sync_washworld_locations()
     app.run(host="0.0.0.0", port=5001, debug=Config.DEBUG)

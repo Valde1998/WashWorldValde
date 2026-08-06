@@ -12,17 +12,9 @@ import type {
   ResetPasswordPayload,
   SignupPayload,
 } from "@/types/app";
+import type { AuthScreen } from "@/lib/routes";
 
-export type AuthScreen =
-  | "welcome"
-  | "login"
-  | "signup"
-  | "plans"
-  | "payment"
-  | "verify"
-  | "forgot"
-  | "sent"
-  | "reset";
+export type { AuthScreen } from "@/lib/routes";
 
 type AuthFlowProps = {
   screen: AuthScreen;
@@ -369,7 +361,7 @@ export default function AuthFlow({
             <label>Kodeord<input autoComplete="new-password" minLength={8} type="password" value={signupForm.password} onChange={(event) => setSignupForm((current) => ({ ...current, password: event.target.value }))} /><small>Mindst 8 tegn</small></label>
             <label>Nummerplade<input autoCapitalize="characters" placeholder="AB 12345" value={signupForm.license_plate} onChange={(event) => setSignupForm((current) => ({ ...current, license_plate: event.target.value.toUpperCase() }))} /></label>
             <label>Telefon<input autoComplete="tel" inputMode="tel" value={signupForm.phone} onChange={(event) => setSignupForm((current) => ({ ...current, phone: event.target.value }))} /></label>
-            <label>Foretrukken vaskehal<select value={signupForm.location_id || locations[0]?.location_id || 0} onChange={(event) => setSignupForm((current) => ({ ...current, location_id: Number(event.target.value) }))}>{locations.map((location) => <option key={location.location_id} value={location.location_id}>{location.city}</option>)}</select></label>
+            <label>Foretrukken vaskehal<select value={signupForm.location_id || locations[0]?.location_id || 0} onChange={(event) => setSignupForm((current) => ({ ...current, location_id: Number(event.target.value) }))}>{locations.map((location) => <option key={location.location_id} value={location.location_id}>{location.name} · {location.address}</option>)}</select></label>
             <button className="primary-button" type="submit" disabled={isLoading || !locations.length || !plans.length}>Fortsæt</button>
           </form>
         ) : null}

@@ -39,6 +39,40 @@ Kodeord: kodeord123
 5. Find og filtrer vaskehaller, og registrer en vask.
 6. Opdater profiloplysninger eller log ud.
 
+## Frontend-sider og endpoints
+
+Hvert trin har sin egen Next.js-side i `frontend/app/(washworld)` og sin egen browseradresse:
+
+```text
+/                       Velkomst
+/login                  Login
+/opret-bruger           Brugeroplysninger
+/medlemskab             Valg af medlemskab
+/betaling               Betaling
+/bekraeft-email         Emailbekræftelse
+/glemt-adgangskode      Glemt adgangskode
+/email-sendt            Email sendt
+/nulstil-adgangskode    Nyt kodeord
+/hjem                   Hjem
+/aktivitet              Aktivitet og vaskehistorik
+/qr-kode                Medlems-QR-kode
+/vaskehaller            Søgning i alle vaskehaller
+/vaskehaller/[slug]     Den valgte vaskehals detaljeside
+/profil                 Profil og foretrukken vaskehal
+```
+
+Bundnavigationen bruger rigtige links, og beskyttede sider sender automatisk brugere uden en gyldig session til `/login`.
+
+## Danske WashWorld-lokationer
+
+Projektet indeholder 71 officielle danske WashWorld-lokationer med korrekt navn, adresse, postnummer, koordinater, åbningstid samt antal vaskehaller og Vask Selv-pladser. WashWorld beskriver dette som over 140 individuelle vaskehaller, fordi flere lokationer har to, tre eller fire haller.
+
+Dataene er hardcoded i `backend/washworld_locations.py`, synkroniseres sikkert til MariaDB ved backendens opstart og blev senest kontrolleret 5. august 2026 mod:
+
+https://washworld.dk/find-wash-world-vaskehal
+
+De samme lokationer bruges i oprettelse af bruger, profilvalg og siden “Find vaskehal”. Hver detaljeside har desuden rutevejledning via de officielle koordinater. Eksisterende brugerrelationer til Tilst, Viby og Højbjerg bevares ved opdateringen.
+
 Oprettelse kræver et gyldigt emailformat, ens emailfelter, et kodeord på mindst otte tegn, nummerplade, telefonnummer og valgt vaskehal. Derefter sendes en 6-cifret engangskode, som skal bruges inden 15 minutter. Kortoplysninger valideres kun i browseren og bliver ikke gemt.
 
 ## Gmail og emailbekræftelse

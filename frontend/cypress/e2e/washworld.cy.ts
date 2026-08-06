@@ -17,21 +17,39 @@ describe("WashWorld dashboard", () => {
     cy.intercept("GET", "**/api/locations", [
       {
         location_id: 1,
-        name: "WashWorld Tilst",
+        name: "Tilst - Blomstervej",
         city: "Tilst",
-        address: "Blomstervej 12",
-        opening_hours: "06:00 - 22:00",
-        queue_minutes: 4,
+        address: "Blomstervej 2T, 8381 Tilst",
+        opening_hours: "7-22",
+        queue_minutes: 0,
         image: "/location-tilst.webp",
+        slug: "tilst-blomstervej",
+        postal_code: "8381",
+        latitude: 56.181787,
+        longitude: 10.125,
+        location_type: "washhall",
+        halls_count: 2,
+        self_wash_count: 0,
+        source_url: "https://washworld.dk/find-wash-world-vaskehal/tilst-blomstervej",
+        source_checked_on: "2026-08-05",
       },
       {
         location_id: 2,
-        name: "WashWorld Viby",
+        name: "Viby - Gunnar Clausens vej",
         city: "Viby",
-        address: "Sonderhoj 9",
-        opening_hours: "06:00 - 22:00",
-        queue_minutes: 7,
+        address: "Gunnar Clausens Vej 2A, 8260 Viby",
+        opening_hours: "7-22",
+        queue_minutes: 0,
         image: "/location-viby.webp",
+        slug: "viby-gunnar-clausens-vej",
+        postal_code: "8260",
+        latitude: 56.111373,
+        longitude: 10.125033,
+        location_type: "both",
+        halls_count: 2,
+        self_wash_count: 1,
+        source_url: "https://washworld.dk/find-wash-world-vaskehal/viby-gunnar-clausens-vej",
+        source_checked_on: "2026-08-05",
       },
     ]);
 
@@ -61,7 +79,7 @@ describe("WashWorld dashboard", () => {
         license_plate: "AB 12345",
         phone: "12345678",
         location_id: 1,
-        location_name: "WashWorld Tilst",
+        location_name: "Tilst - Blomstervej",
         location_city: "Tilst",
         plan_id: 2,
         plan_name: "Plus",
@@ -76,7 +94,7 @@ describe("WashWorld dashboard", () => {
       license_plate: "AB 12345",
       phone: "12345678",
       location_id: 1,
-      location_name: "WashWorld Tilst",
+      location_name: "Tilst - Blomstervej",
       location_city: "Tilst",
       plan_id: 2,
       plan_name: "Plus",
@@ -94,16 +112,21 @@ describe("WashWorld dashboard", () => {
     cy.contains("h1", "Log ind");
     cy.contains("button", "Log ind").click();
     cy.contains("Hej, Demo");
+    cy.location("pathname").should("eq", "/hjem");
 
-    cy.contains("button", "Vaskehaller").click();
+    cy.contains("a", "Vaskehaller").click();
+    cy.location("pathname").should("eq", "/vaskehaller");
     cy.get('input[aria-label="Søg efter vaskehal"]').type("Viby");
     cy.contains("Viby");
     cy.contains("Tilst").should("not.exist");
+    cy.contains("a", "Se vaskehal").click();
+    cy.location("pathname").should("eq", "/vaskehaller/viby-gunnar-clausens-vej");
   });
 
   it("validates email before signup can continue", () => {
     cy.visit("/");
     cy.contains("button", "Bliv medlem").click();
+    cy.location("pathname").should("eq", "/opret-bruger");
     cy.contains("h1", "Dine oplysninger");
 
     cy.contains("label", "Navn").find("input").type("Valde");
@@ -115,6 +138,38 @@ describe("WashWorld dashboard", () => {
 
     cy.contains("Indtast en gyldig emailadresse");
     cy.contains("h1", "Dine oplysninger");
+  });
+
+  it("uses a real endpoint for every bottom-navigation page", () => {
+    cy.visit("/login");
+    cy.contains("button", "Log ind").click();
+    cy.location("pathname").should("eq", "/hjem");
+
+    cy.contains("a", "Aktivitet").click();
+    cy.location("pathname").should("eq", "/aktivitet");
+    cy.contains("h1", "Aktivitet");
+
+    cy.contains("a", "QR").click();
+    cy.location("pathname").should("eq", "/qr-kode");
+    cy.contains("h1", "Scan QR-koden");
+
+    cy.contains("a", "Vaskehaller").click();
+    cy.location("pathname").should("eq", "/vaskehaller");
+    cy.contains("h1", "Find vaskehal");
+
+    cy.contains("a", "Profil").click();
+    cy.location("pathname").should("eq", "/profil");
+    cy.contains("h1", "Demo");
+
+    cy.contains("a", "Hjem").click();
+    cy.location("pathname").should("eq", "/hjem");
+    cy.contains("Hej, Demo");
+  });
+
+  it("redirects a protected endpoint to login without a session", () => {
+    cy.visit("/profil");
+    cy.location("pathname").should("eq", "/login");
+    cy.contains("h1", "Log ind");
   });
 
   it("requires and verifies the emailed signup code", () => {
@@ -138,7 +193,7 @@ describe("WashWorld dashboard", () => {
         license_plate: "AB 12345",
         phone: "12345678",
         location_id: 1,
-        location_name: "WashWorld Tilst",
+        location_name: "Tilst - Blomstervej",
         location_city: "Tilst",
         plan_id: 2,
         plan_name: "Plus",
@@ -150,6 +205,7 @@ describe("WashWorld dashboard", () => {
     cy.contains("button", "Log ind").click();
     cy.contains("button", "Log ind").click();
     cy.wait("@pendingLogin");
+    cy.location("pathname").should("eq", "/bekraeft-email");
     cy.contains("h1", "Bekræft din email");
     cy.contains("demo@washworld.dk");
 
@@ -164,6 +220,7 @@ describe("WashWorld dashboard", () => {
       code: "123456",
     });
     cy.contains("Hej, Demo");
+    cy.location("pathname").should("eq", "/hjem");
   });
 
   it("clears an expired session and returns to login", () => {

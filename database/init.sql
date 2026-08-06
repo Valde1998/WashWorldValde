@@ -16,7 +16,16 @@ CREATE TABLE locations (
     address VARCHAR(120) NOT NULL,
     opening_hours VARCHAR(80) NOT NULL,
     queue_minutes INT NOT NULL,
-    image VARCHAR(120) NOT NULL
+    image VARCHAR(120) NOT NULL,
+    slug VARCHAR(180),
+    postal_code VARCHAR(10),
+    latitude DECIMAL(11, 8),
+    longitude DECIMAL(11, 8),
+    location_type VARCHAR(20) NOT NULL DEFAULT 'washhall',
+    halls_count INT NOT NULL DEFAULT 1,
+    self_wash_count INT NOT NULL DEFAULT 0,
+    source_url VARCHAR(255),
+    source_checked_on DATE
 );
 
 CREATE TABLE plans (
@@ -83,10 +92,13 @@ CREATE TABLE email_verification_tokens (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
-INSERT INTO locations (name, city, address, opening_hours, queue_minutes, image) VALUES
-('WashWorld Tilst', 'Tilst', 'Blomstervej 12', '06:00 - 22:00', 4, '/location-tilst.webp'),
-('WashWorld Viby', 'Viby', 'Sonderhoj 9', '06:00 - 22:00', 7, '/location-viby.webp'),
-('WashWorld Hojbjerg', 'Hojbjerg', 'Oddervej 88', '07:00 - 21:00', 2, '/location-hojbjerg.webp');
+INSERT INTO locations (
+    name, city, address, opening_hours, queue_minutes, image, slug, postal_code,
+    latitude, longitude, location_type, halls_count, self_wash_count, source_url, source_checked_on
+) VALUES
+('Tilst - Blomstervej', 'Tilst', 'Blomstervej 2T, 8381 Tilst', '7-22', 0, '/location-tilst.webp', 'tilst-blomstervej', '8381', 56.181787, 10.125, 'washhall', 2, 0, 'https://washworld.dk/find-wash-world-vaskehal/tilst-blomstervej', '2026-08-05'),
+('Viby - Gunnar Clausens vej', 'Viby', 'Gunnar Clausens Vej 2A, 8260 Viby', '7-22', 0, '/location-viby.webp', 'viby-gunnar-clausens-vej', '8260', 56.111373, 10.125033, 'both', 2, 1, 'https://washworld.dk/find-wash-world-vaskehal/viby-gunnar-clausens-vej', '2026-08-05'),
+('Højbjerg - Bjødstrupvej', 'Højbjerg', 'Bjødstrupvej 20E, 8270 Højbjerg', '7-22', 0, '/location-hojbjerg.webp', 'hojbjerg-bjodstrupvej', '8270', 56.107525, 10.166967, 'washhall', 2, 0, 'https://washworld.dk/find-wash-world-vaskehal/hojbjerg-bjodstrupvej', '2026-08-05');
 
 INSERT INTO plans (name, description, monthly_price, single_wash_price) VALUES
 ('Basis', 'Til dig der vasker bilen et par gange om maaneden.', 99.00, 79.00),

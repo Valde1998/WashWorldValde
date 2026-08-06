@@ -20,6 +20,15 @@ export type Location = {
   opening_hours: string;
   queue_minutes: number;
   image: string;
+  slug: string;
+  postal_code: string;
+  latitude: number;
+  longitude: number;
+  location_type: "washhall" | "both";
+  halls_count: number;
+  self_wash_count: number;
+  source_url: string;
+  source_checked_on: string;
 };
 
 export type Plan = {

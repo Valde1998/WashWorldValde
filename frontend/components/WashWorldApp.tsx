@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import AppShell from "@/components/mobile/AppShell";
-import AuthFlow, { type AuthScreen } from "@/components/mobile/AuthFlow";
+import AuthFlow from "@/components/mobile/AuthFlow";
 import { useStoredToken } from "@/hooks/useStoredToken";
 import {
   ApiError,
@@ -22,6 +23,14 @@ import {
   updateMe,
   verifyEmail,
 } from "@/lib/api";
+import {
+  APP_TAB_ROUTES,
+  AUTH_SCREEN_ROUTES,
+  appTabForPath,
+  authScreenForPath,
+  locationSlugForPath,
+  type AuthScreen,
+} from "@/lib/routes";
 import type {
   ForgotPasswordPayload,
   Location,
@@ -39,10 +48,17 @@ const EMPTY_WASHES: Wash[] = [];
 
 export default function WashWorldApp() {
   const queryClient = useQueryClient();
-  const { token, saveToken, clearToken } = useStoredToken();
-  const [authScreen, setAuthScreen] = useState<AuthScreen>("welcome");
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { token, isHydrated, saveToken, clearToken } = useStoredToken();
   const [notice, setNotice] = useState("Klar");
-  const [verificationEmail, setVerificationEmail] = useState("");
+  const [verificationEmailState, setVerificationEmail] = useState("");
+
+  const routeAuthScreen = authScreenForPath(pathname);
+  const activeTab = appTabForPath(pathname);
+  const locationSlug = locationSlugForPath(pathname);
+  const verificationEmail = verificationEmailState || searchParams.get("email") || "";
 
   const dashboardQuery = useQuery({ queryKey: ["dashboard"], queryFn: getDashboard });
   const locationsQuery = useQuery({ queryKey: ["locations"], queryFn: getLocations });
@@ -72,11 +88,29 @@ export default function WashWorldApp() {
   const profile = profileQuery.data;
   const washesQueryKey = ["washes", token] as const;
 
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    if (activeTab && !token) {
+      router.replace(AUTH_SCREEN_ROUTES.login);
+      return;
+    }
+
+    if (!activeTab && token && profile) {
+      router.replace(APP_TAB_ROUTES.home);
+    }
+  }, [activeTab, isHydrated, profile, router, token]);
+
+  function navigateToAuthScreen(screen: AuthScreen) {
+    router.push(AUTH_SCREEN_ROUTES[screen]);
+  }
+
   function saveSession(session: { token: string }) {
     saveToken(session.token);
     setNotice("Du er logget ind");
     void queryClient.invalidateQueries({ queryKey: ["me"] });
     void queryClient.invalidateQueries({ queryKey: ["washes"] });
+    router.replace(APP_TAB_ROUTES.home);
   }
 
   function handleProtectedError(error: Error) {
@@ -84,8 +118,8 @@ export default function WashWorldApp() {
       clearToken();
       queryClient.removeQueries({ queryKey: ["me"] });
       queryClient.removeQueries({ queryKey: ["washes"] });
-      setAuthScreen("login");
       setNotice("Din session er udløbet. Log ind igen.");
+      router.replace(AUTH_SCREEN_ROUTES.login);
       return;
     }
     setNotice(error.message);
@@ -102,8 +136,8 @@ export default function WashWorldApp() {
     }
 
     setVerificationEmail(data.email);
-    setAuthScreen("verify");
     setNotice(error.message);
+    router.push(`${AUTH_SCREEN_ROUTES.verify}?email=${encodeURIComponent(data.email)}`);
     return true;
   }
 
@@ -111,9 +145,7 @@ export default function WashWorldApp() {
     mutationFn: login,
     onSuccess: saveSession,
     onError: (error) => {
-      if (!showVerificationScreen(error)) {
-        setNotice(error.message);
-      }
+      if (!showVerificationScreen(error)) setNotice(error.message);
     },
   });
   const signupMutation = useMutation({
@@ -121,12 +153,10 @@ export default function WashWorldApp() {
     onSuccess: (response) => {
       setVerificationEmail(response.email);
       setNotice(response.message);
-      setAuthScreen("verify");
+      router.push(`${AUTH_SCREEN_ROUTES.verify}?email=${encodeURIComponent(response.email)}`);
     },
     onError: (error) => {
-      if (!showVerificationScreen(error)) {
-        setNotice(error.message);
-      }
+      if (!showVerificationScreen(error)) setNotice(error.message);
     },
   });
   const verifyEmailMutation = useMutation({
@@ -143,7 +173,7 @@ export default function WashWorldApp() {
     mutationFn: forgotPassword,
     onSuccess: (response) => {
       setNotice(response.message);
-      setAuthScreen("sent");
+      router.push(AUTH_SCREEN_ROUTES.sent);
     },
     onError: (error) => setNotice(error.message),
   });
@@ -151,7 +181,7 @@ export default function WashWorldApp() {
     mutationFn: resetPassword,
     onSuccess: (response) => {
       setNotice(response.message);
-      setAuthScreen("login");
+      router.replace(AUTH_SCREEN_ROUTES.login);
     },
     onError: (error) => setNotice(error.message),
   });
@@ -200,7 +230,7 @@ export default function WashWorldApp() {
     queryClient.removeQueries({ queryKey: ["me"] });
     queryClient.removeQueries({ queryKey: ["washes"] });
     setNotice("Du er logget ud");
-    setAuthScreen("welcome");
+    router.replace(AUTH_SCREEN_ROUTES.welcome);
   }
 
   const authLoading =
@@ -211,7 +241,7 @@ export default function WashWorldApp() {
     forgotPasswordMutation.isPending ||
     resetPasswordMutation.isPending;
 
-  if (token && profileQuery.isLoading) {
+  if (!isHydrated || (token && profileQuery.isLoading) || (activeTab && !token)) {
     return (
       <main className="mobile-frame app-loading-screen">
         <div className="loading-mark">W</div>
@@ -220,14 +250,16 @@ export default function WashWorldApp() {
     );
   }
 
-  if (profile) {
+  if (profile && activeTab) {
     return (
       <AppShell
         key={`${profile.user_id}-${profile.first_name}-${profile.license_plate}-${profile.location_id}-${profile.plan_id}`}
+        activeTab={activeTab}
         dashboard={dashboardQuery.data}
         isCreatingWash={washMutation.isPending}
         isSaving={updateMutation.isPending}
         locations={locations}
+        locationSlug={locationSlug}
         notice={dashboardQuery.isError ? "Forbindelsen til backend er afbrudt" : notice}
         onCreateWash={(locationId, washType) => washMutation.mutate({ locationId, washType })}
         onLogout={handleLogout}
@@ -241,6 +273,15 @@ export default function WashWorldApp() {
     );
   }
 
+  if (profile && !activeTab) {
+    return (
+      <main className="mobile-frame app-loading-screen">
+        <div className="loading-mark">W</div>
+        <p>Åbner din startside...</p>
+      </main>
+    );
+  }
+
   return (
     <AuthFlow
       isLoading={authLoading}
@@ -251,11 +292,11 @@ export default function WashWorldApp() {
       onLogin={(payload: LoginPayload) => loginMutation.mutate(payload)}
       onResendVerification={() => resendVerificationMutation.mutate()}
       onResetPassword={(payload: ResetPasswordPayload) => resetPasswordMutation.mutate(payload)}
-      onScreenChange={setAuthScreen}
+      onScreenChange={navigateToAuthScreen}
       onSignup={(payload: SignupPayload) => signupMutation.mutate(payload)}
       onVerifyEmail={(code) => verifyEmailMutation.mutate(code)}
       plans={plans}
-      screen={authScreen}
+      screen={routeAuthScreen ?? "welcome"}
     />
   );
 }

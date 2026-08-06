@@ -23,8 +23,13 @@ function getServerTokenSnapshot() {
   return null;
 }
 
+function subscribeToHydration() {
+  return () => undefined;
+}
+
 export function useStoredToken() {
   const token = useSyncExternalStore(subscribe, getTokenSnapshot, getServerTokenSnapshot);
+  const isHydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
 
   const saveToken = useCallback((nextToken: string | null) => {
     if (nextToken) {
@@ -38,5 +43,5 @@ export function useStoredToken() {
 
   const clearToken = useCallback(() => saveToken(null), [saveToken]);
 
-  return { token, saveToken, clearToken };
+  return { token, isHydrated, saveToken, clearToken };
 }
