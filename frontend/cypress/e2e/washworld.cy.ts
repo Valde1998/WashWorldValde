@@ -238,7 +238,6 @@ describe("WashWorld dashboard", () => {
 
     const verificationToken = "secure_email_token_12345678901234567890";
     cy.visit(`/bekraeft-email?email=demo%40washworld.dk&token=${verificationToken}`);
-    cy.contains("button", "Bekræft email og log ind").click();
     cy.wait("@verifyEmail").its("request.body").should("deep.equal", {
       email: "demo@washworld.dk",
       token: verificationToken,

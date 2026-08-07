@@ -300,7 +300,7 @@ export default function AuthFlow({
           <h1>Bekræft din email</h1>
           <p className="screen-intro">
             {verificationToken ? (
-              <>Linket til <strong>{verificationEmail}</strong> er klar. Tryk på knappen for at aktivere medlemskabet.</>
+              <>Din email <strong>{verificationEmail}</strong> bekræftes nu automatisk.</>
             ) : (
               <>Vi har sendt et bekræftelseslink til <strong>{verificationEmail}</strong>. Åbn linket i emailen for at fortsætte.</>
             )}
@@ -309,7 +309,7 @@ export default function AuthFlow({
           {notice !== "Klar" ? <p className="status-message">{notice}</p> : null}
           {verificationToken ? (
             <button className="primary-button verification-form" type="button" disabled={isLoading} onClick={onVerifyEmail}>
-              {isLoading ? "Bekræfter..." : "Bekræft email og log ind"}
+              {isLoading ? "Bekræfter..." : "Prøv bekræftelse igen"}
             </button>
           ) : null}
           <button className="text-button" type="button" disabled={isLoading} onClick={onResendVerification}>

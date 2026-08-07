@@ -1,3 +1,4 @@
+import json
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -61,6 +62,28 @@ class EmailServiceTests(unittest.TestCase):
         self.assertEqual(email_request.headers["Api-key"], "brevo-secret")
         smtp_payload = email_request.data.decode("utf-8")
         self.assertIn("kunde@example.com", smtp_payload)
+
+
+    @patch("email_service.request.urlopen")
+    def test_brevo_api_includes_html_button(self, urlopen):
+        Config.BREVO_API_KEY = "brevo-secret"
+        Config.EMAIL_FROM = "sender@example.com"
+        Config.EMAIL_FROM_NAME = "WashWorld"
+        response = MagicMock()
+        response.status = 201
+        urlopen.return_value.__enter__.return_value = response
+
+        send_email(
+            "kunde@example.com",
+            "Confirm email",
+            "Open the confirmation link",
+            '<a href="https://example.com/verify">Confirm email</a>',
+        )
+
+        email_request = urlopen.call_args.args[0]
+        payload = json.loads(email_request.data.decode("utf-8"))
+        self.assertEqual(payload["to"], [{"email": "kunde@example.com"}])
+        self.assertIn("Confirm email", payload["htmlContent"])
 
 
 if __name__ == "__main__":

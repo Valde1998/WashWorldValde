@@ -1,5 +1,6 @@
 import secrets
 import uuid
+from html import escape
 from urllib.parse import urlencode
 
 from flask import Flask, jsonify, request
@@ -331,12 +332,38 @@ def verification_email(first_name, user_email, token):
         f"Linket udløber om {Config.EMAIL_VERIFICATION_TTL_MINUTES} minutter. "
         "Hvis du ikke har oprettet en WashWorld-konto, kan du ignorere denne email."
     )
-    return subject, body
+    safe_name = escape(first_name)
+    safe_url = escape(verification_url, quote=True)
+    html_body = f"""\
+<!doctype html>
+<html lang="da">
+  <body style="margin:0;background:#f4f5f4;font-family:Arial,sans-serif;color:#111111;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f5f4;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background:#ffffff;border-radius:18px;padding:36px;">
+            <tr><td style="font-size:13px;font-weight:700;letter-spacing:3px;color:#008b3d;">WASHWORLD</td></tr>
+            <tr><td style="padding-top:24px;font-size:28px;font-weight:700;">Bekræft din email</td></tr>
+            <tr><td style="padding-top:16px;font-size:16px;line-height:1.6;">Hej {safe_name}. Tryk på knappen nedenfor for at bekræfte din email og aktivere dit medlemskab.</td></tr>
+            <tr>
+              <td align="center" style="padding:28px 0;">
+                <a href="{safe_url}" style="display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;padding:14px 28px;border-radius:8px;">Bekræft email</a>
+              </td>
+            </tr>
+            <tr><td style="font-size:13px;line-height:1.5;color:#666666;">Knappen virker i {Config.EMAIL_VERIFICATION_TTL_MINUTES} minutter. Hvis du ikke har oprettet en WashWorld-konto, kan du ignorere denne email.</td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+"""
+    return subject, body, html_body
 
 
-def deliver_email(email_to, subject, body):
+def deliver_email(email_to, subject, body, html_body=None):
     try:
-        send_email(email_to, subject, body)
+        send_email(email_to, subject, body, html_body)
         return True
     except EmailDeliveryError as error:
         print(f"Email delivery failed: {error}", flush=True)
@@ -508,7 +535,7 @@ def sign_up():
     password_hash = generate_password_hash(user_password)
     token = make_verification_token()
     token_hash = generate_password_hash(token)
-    verification_subject, verification_body = verification_email(first_name, user_email, token)
+    verification_subject, verification_body, verification_html = verification_email(first_name, user_email, token)
 
     def create_user(cursor):
         cursor.execute(
@@ -556,7 +583,7 @@ def sign_up():
 
     run_transaction(create_user)
 
-    email_sent = deliver_email(user_email, verification_subject, verification_body)
+    email_sent = deliver_email(user_email, verification_subject, verification_body, verification_html)
     if not email_sent:
         allow_immediate_verification_resend(user_id)
 
@@ -706,7 +733,7 @@ def resend_verification():
 
     token = make_verification_token()
     token_hash = generate_password_hash(token)
-    subject, body = verification_email(verification["first_name"], verification["email"], token)
+    subject, body, html_body = verification_email(verification["first_name"], verification["email"], token)
 
     def replace_token(cursor):
         cursor.execute(
@@ -727,7 +754,7 @@ def resend_verification():
         )
 
     run_transaction(replace_token)
-    if not deliver_email(verification["email"], subject, body):
+    if not deliver_email(verification["email"], subject, body, html_body):
         allow_immediate_verification_resend(verification["user_id"])
         return jsonify({"error": "Emailen kunne ikke sendes. Kontrollér SMTP-opsætningen."}), 503
 

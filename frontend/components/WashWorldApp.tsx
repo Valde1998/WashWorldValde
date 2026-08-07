@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -56,6 +56,7 @@ export default function WashWorldApp() {
   const { token, isHydrated, saveToken, clearToken } = useStoredToken();
   const [notice, setNotice] = useState("Klar");
   const [verificationEmailState, setVerificationEmail] = useState("");
+  const automaticVerificationAttempt = useRef("");
 
   const routeAuthScreen = authScreenForPath(pathname);
   const activeTab = appTabForPath(pathname);
@@ -171,6 +172,17 @@ export default function WashWorldApp() {
     onSuccess: saveSession,
     onError: (error) => setNotice(error.message),
   });
+  const verifyEmailNow = verifyEmailMutation.mutate;
+  useEffect(() => {
+    if (!isHydrated || routeAuthScreen !== "verify" || !verificationEmail || !verificationToken) return;
+
+    const attempt = `${verificationEmail}:${verificationToken}`;
+    if (automaticVerificationAttempt.current === attempt) return;
+
+    automaticVerificationAttempt.current = attempt;
+    setNotice("Bekræfter din email...");
+    verifyEmailNow();
+  }, [isHydrated, routeAuthScreen, verificationEmail, verificationToken, verifyEmailNow]);
   const resendVerificationMutation = useMutation({
     mutationFn: () => resendVerification(verificationEmail),
     onSuccess: (response) => setNotice(response.message),
