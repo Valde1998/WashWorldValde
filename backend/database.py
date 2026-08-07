@@ -25,7 +25,7 @@ def get_connection():
     # Docker can start Flask before MariaDB is ready, so the first connection retries.
     last_error = None
 
-    for _ in range(20):
+    for _ in range(Config.DB_CONNECT_RETRIES):
         try:
             return mysql.connector.connect(
                 host=Config.DB_HOST,

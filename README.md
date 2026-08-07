@@ -85,6 +85,20 @@ Oprettelse kræver et gyldigt emailformat, ens emailfelter, et kodeord på minds
 
 `.env` er ignoreret af Git og må aldrig committed. Linkets hemmelige token gemmes kun som et hash i databasen og udløber efter 15 minutter. Et nyt link kan tidligst sendes efter 60 sekunder. Emails sendes direkte via SMTP og gemmes ikke i databasen.
 
+## Railway deployment
+
+Projektet kan deployes som tre Railway-services fra det samme GitHub-repository:
+
+- `frontend` med root directory `/frontend`
+- `backend` med root directory `/backend`
+- en administreret MySQL-database
+
+Backend opretter selv tabeller, medlemskaber, demo-bruger og WashWorld-lokationer i en tom database. Begge Docker-images bruger Railways dynamiske `PORT`. Frontendens Docker-build accepterer `NEXT_PUBLIC_API_URL` som build-variabel.
+
+Railway Free, Trial og Hobby blokerer udgÃ¥ende SMTP. Online bruges derfor Brevos HTTPS-API med en verificeret afsender og miljÃ¸variablerne `BREVO_API_KEY`, `EMAIL_FROM` og `EMAIL_FROM_NAME`. Den lokale Gmail-SMTP-opsÃ¦tning fungerer fortsat som fallback, nÃ¥r `BREVO_API_KEY` er tom.
+
+Produktionshemmeligheder gemmes kun som Railway Variables. `.env` mÃ¥ ikke uploades eller committed.
+
 ## API
 
 ```text

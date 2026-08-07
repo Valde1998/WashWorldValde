@@ -9,4 +9,4 @@ COPY . .
 
 EXPOSE 5001
 
-CMD ["python", "app.py"]
+CMD ["sh", "-c", "python -c 'from app import prepare_application; prepare_application()' && exec gunicorn --bind 0.0.0.0:${PORT:-5001} --workers 1 --threads 4 app:app"]

@@ -11,6 +11,9 @@ class EmailServiceTests(unittest.TestCase):
             "SMTP_USERNAME": Config.SMTP_USERNAME,
             "SMTP_APP_PASSWORD": Config.SMTP_APP_PASSWORD,
             "SMTP_FROM": Config.SMTP_FROM,
+            "BREVO_API_KEY": Config.BREVO_API_KEY,
+            "EMAIL_FROM": Config.EMAIL_FROM,
+            "EMAIL_FROM_NAME": Config.EMAIL_FROM_NAME,
         }
 
     def tearDown(self):
@@ -21,12 +24,15 @@ class EmailServiceTests(unittest.TestCase):
         Config.SMTP_USERNAME = ""
         Config.SMTP_APP_PASSWORD = ""
         Config.SMTP_FROM = ""
+        Config.BREVO_API_KEY = ""
+        Config.EMAIL_FROM = ""
 
         with self.assertRaises(EmailDeliveryError):
             send_email("kunde@example.com", "Emne", "Indhold")
 
     @patch("email_service.smtplib.SMTP")
     def test_email_uses_tls_and_login(self, smtp_class):
+        Config.BREVO_API_KEY = ""
         Config.SMTP_USERNAME = "sender@example.com"
         Config.SMTP_APP_PASSWORD = "app-password"
         Config.SMTP_FROM = "sender@example.com"
@@ -38,6 +44,23 @@ class EmailServiceTests(unittest.TestCase):
         smtp.starttls.assert_called_once()
         smtp.login.assert_called_once_with("sender@example.com", "app-password")
         smtp.send_message.assert_called_once()
+
+    @patch("email_service.request.urlopen")
+    def test_brevo_api_is_preferred_when_configured(self, urlopen):
+        Config.BREVO_API_KEY = "brevo-secret"
+        Config.EMAIL_FROM = "sender@example.com"
+        Config.EMAIL_FROM_NAME = "WashWorld"
+        response = MagicMock()
+        response.status = 201
+        urlopen.return_value.__enter__.return_value = response
+
+        send_email("kunde@example.com", "BekrÃ¦ft email", "Klik pÃ¥ linket")
+
+        email_request = urlopen.call_args.args[0]
+        self.assertEqual(email_request.full_url, Config.BREVO_API_URL)
+        self.assertEqual(email_request.headers["Api-key"], "brevo-secret")
+        smtp_payload = email_request.data.decode("utf-8")
+        self.assertIn("kunde@example.com", smtp_payload)
 
 
 if __name__ == "__main__":

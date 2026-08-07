@@ -65,7 +65,73 @@ def create_session_response(user_id, status_code=200):
 
 
 def ensure_runtime_schema():
-    execute(
+    table_statements = (
+        """
+        CREATE TABLE IF NOT EXISTS locations (
+            location_id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(80) NOT NULL,
+            city VARCHAR(80) NOT NULL,
+            address VARCHAR(120) NOT NULL,
+            opening_hours VARCHAR(80) NOT NULL,
+            queue_minutes INT NOT NULL,
+            image VARCHAR(120) NOT NULL,
+            slug VARCHAR(180),
+            postal_code VARCHAR(10),
+            latitude DECIMAL(11, 8),
+            longitude DECIMAL(11, 8),
+            location_type VARCHAR(20) NOT NULL DEFAULT 'washhall',
+            halls_count INT NOT NULL DEFAULT 1,
+            self_wash_count INT NOT NULL DEFAULT 0,
+            source_url VARCHAR(255),
+            source_checked_on DATE
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS plans (
+            plan_id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(80) NOT NULL,
+            description VARCHAR(255) NOT NULL,
+            monthly_price DECIMAL(8, 2) NOT NULL,
+            single_wash_price DECIMAL(8, 2) NOT NULL
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            user_id CHAR(32) PRIMARY KEY,
+            first_name VARCHAR(80) NOT NULL,
+            email VARCHAR(120) NOT NULL UNIQUE,
+            password_hash VARCHAR(255) NOT NULL,
+            license_plate VARCHAR(20) NOT NULL,
+            phone VARCHAR(30),
+            location_id INT NOT NULL,
+            plan_id INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (location_id) REFERENCES locations(location_id),
+            FOREIGN KEY (plan_id) REFERENCES plans(plan_id)
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS wash_history (
+            wash_id CHAR(32) PRIMARY KEY,
+            user_id CHAR(32) NOT NULL,
+            location_id INT NOT NULL,
+            wash_type VARCHAR(80) NOT NULL,
+            washed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+            FOREIGN KEY (location_id) REFERENCES locations(location_id)
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            reset_id CHAR(32) PRIMARY KEY,
+            user_id CHAR(32) NOT NULL,
+            reset_key CHAR(32) NOT NULL UNIQUE,
+            expires_at DATETIME NOT NULL,
+            used_at DATETIME,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        )
+        """,
         """
         CREATE TABLE IF NOT EXISTS email_verification_tokens (
             verification_id CHAR(32) PRIMARY KEY,
@@ -77,21 +143,55 @@ def ensure_runtime_schema():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
-        """
+        """,
     )
-    location_columns = (
-        "ADD COLUMN IF NOT EXISTS slug VARCHAR(180)",
-        "ADD COLUMN IF NOT EXISTS postal_code VARCHAR(10)",
-        "ADD COLUMN IF NOT EXISTS latitude DECIMAL(11, 8)",
-        "ADD COLUMN IF NOT EXISTS longitude DECIMAL(11, 8)",
-        "ADD COLUMN IF NOT EXISTS location_type VARCHAR(20) NOT NULL DEFAULT 'washhall'",
-        "ADD COLUMN IF NOT EXISTS halls_count INT NOT NULL DEFAULT 1",
-        "ADD COLUMN IF NOT EXISTS self_wash_count INT NOT NULL DEFAULT 0",
-        "ADD COLUMN IF NOT EXISTS source_url VARCHAR(255)",
-        "ADD COLUMN IF NOT EXISTS source_checked_on DATE",
+    for statement in table_statements:
+        execute(statement)
+
+    location_columns = {
+        "slug": "slug VARCHAR(180)",
+        "postal_code": "postal_code VARCHAR(10)",
+        "latitude": "latitude DECIMAL(11, 8)",
+        "longitude": "longitude DECIMAL(11, 8)",
+        "location_type": "location_type VARCHAR(20) NOT NULL DEFAULT 'washhall'",
+        "halls_count": "halls_count INT NOT NULL DEFAULT 1",
+        "self_wash_count": "self_wash_count INT NOT NULL DEFAULT 0",
+        "source_url": "source_url VARCHAR(255)",
+        "source_checked_on": "source_checked_on DATE",
+    }
+    existing_columns = {
+        row["COLUMN_NAME"]
+        for row in fetch_all(
+            """
+            SELECT COLUMN_NAME
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'locations'
+            """,
+            (Config.DB_NAME,),
+        )
+    }
+    for name, definition in location_columns.items():
+        if name not in existing_columns:
+            execute(f"ALTER TABLE locations ADD COLUMN {definition}")
+
+    plans = (
+        (1, "Basis", "Til dig der vasker bilen et par gange om maaneden.", 99.00, 79.00),
+        (2, "Plus", "Den mest brugte pakke med fri vask i din faste vaskehal.", 149.00, 99.00),
+        (3, "Premium", "Fri vask i alle vaskehaller og ekstra lakbeskyttelse.", 199.00, 129.00),
     )
-    for column in location_columns:
-        execute(f"ALTER TABLE locations {column}")
+    for plan in plans:
+        execute(
+            """
+            INSERT INTO plans (plan_id, name, description, monthly_price, single_wash_price)
+            VALUES (%s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                name = VALUES(name),
+                description = VALUES(description),
+                monthly_price = VALUES(monthly_price),
+                single_wash_price = VALUES(single_wash_price)
+            """,
+            plan,
+        )
 
 
 def sync_washworld_locations():
@@ -179,6 +279,41 @@ def sync_washworld_locations():
             )
 
     run_transaction(sync)
+
+
+def ensure_demo_user():
+    if fetch_one("SELECT user_id FROM users WHERE email = %s", ("demo@washworld.dk",)):
+        return
+
+    location = fetch_one("SELECT location_id FROM locations ORDER BY location_id LIMIT 1")
+    plan = fetch_one("SELECT plan_id FROM plans WHERE plan_id = %s", (2,))
+    if not location or not plan:
+        return
+
+    execute(
+        """
+        INSERT INTO users (
+            user_id, first_name, email, password_hash, license_plate, phone, location_id, plan_id
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (
+            uuid.uuid4().hex,
+            "Demo",
+            "demo@washworld.dk",
+            generate_password_hash("kodeord123"),
+            "WW 2026",
+            "+45 20 26 20 26",
+            location["location_id"],
+            plan["plan_id"],
+        ),
+    )
+
+
+def prepare_application():
+    ensure_runtime_schema()
+    sync_washworld_locations()
+    ensure_demo_user()
 
 
 def make_verification_token():
@@ -791,6 +926,5 @@ def unknown_error(error):
 
 
 if __name__ == "__main__":
-    ensure_runtime_schema()
-    sync_washworld_locations()
-    app.run(host="0.0.0.0", port=5001, debug=Config.DEBUG)
+    prepare_application()
+    app.run(host="0.0.0.0", port=Config.PORT, debug=Config.DEBUG)
