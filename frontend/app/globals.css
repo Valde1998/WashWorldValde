@@ -76,7 +76,6 @@ h1, h2, h3, p { margin-top: 0; }
 .success-icon { align-items: center; background: var(--green); border-radius: 50%; color: #fff; display: flex; font-size: 32px; font-weight: 900; height: 72px; justify-content: center; margin-bottom: 24px; width: 72px; }
 .email-icon { background: #050505; color: var(--green); font-size: 30px; }
 .verification-form { margin-top: 8px; max-width: 300px; width: 100%; }
-.mobile-form .verification-code-input { font-size: 24px; font-weight: 900; letter-spacing: 0.32em; text-align: center; }
 .muted-text-button { color: var(--muted); font-weight: 700; }
 
 .mobile-form { display: grid; gap: 15px; }

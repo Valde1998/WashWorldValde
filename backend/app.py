@@ -1,5 +1,6 @@
 import secrets
 import uuid
+from urllib.parse import urlencode
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -24,7 +25,7 @@ from validators import (
     password,
     positive_int,
     required_text,
-    verification_code,
+    verification_token,
 )
 
 app = Flask(__name__)
@@ -63,25 +64,14 @@ def create_session_response(user_id, status_code=200):
     return jsonify({"token": token, "user": get_profile(user_id)}), status_code
 
 
-def queue_email(cursor, user_id, email_to, subject, body):
-    cursor.execute(
-        """
-        INSERT INTO email_outbox (email_id, user_id, email_to, subject, body)
-        VALUES (%s, %s, %s, %s, %s)
-        """,
-        (uuid.uuid4().hex, user_id, email_to, subject, body),
-    )
-
-
 def ensure_runtime_schema():
     execute(
         """
         CREATE TABLE IF NOT EXISTS email_verification_tokens (
             verification_id CHAR(32) PRIMARY KEY,
             user_id CHAR(32) NOT NULL UNIQUE,
-            code_hash VARCHAR(255) NOT NULL,
+            token_hash VARCHAR(255) NOT NULL,
             expires_at DATETIME NOT NULL,
-            attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
             last_sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             verified_at DATETIME,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -191,16 +181,19 @@ def sync_washworld_locations():
     run_transaction(sync)
 
 
-def make_verification_code():
-    return f"{secrets.randbelow(1_000_000):06d}"
+def make_verification_token():
+    return secrets.token_urlsafe(32)
 
 
-def verification_email(first_name, code):
+def verification_email(first_name, user_email, token):
+    query = urlencode({"email": user_email, "token": token})
+    verification_url = f"{Config.FRONTEND_URL}/bekraeft-email?{query}"
     subject = "Bekræft din email til WashWorld"
     body = (
         f"Hej {first_name}.\n\n"
-        f"Din bekræftelseskode er: {code}\n\n"
-        f"Koden udløber om {Config.EMAIL_VERIFICATION_TTL_MINUTES} minutter. "
+        "Åbn linket nedenfor og tryk på knappen 'Bekræft email':\n\n"
+        f"{verification_url}\n\n"
+        f"Linket udløber om {Config.EMAIL_VERIFICATION_TTL_MINUTES} minutter. "
         "Hvis du ikke har oprettet en WashWorld-konto, kan du ignorere denne email."
     )
     return subject, body
@@ -315,6 +308,26 @@ def dashboard():
     return jsonify({"totals": totals, "washes_per_day": washes_per_day})
 
 
+@app.post("/api/sign-up/validate")
+def validate_sign_up():
+    data = request.get_json(silent=True) or {}
+
+    required_text(data, "first_name", "First name", min_length=2, max_length=80)
+    user_email = email(data)
+    password(data)
+    license_plate(data)
+    optional_text(data, "phone", max_length=30)
+    location_id = positive_int(data, "location_id", "Location")
+
+    if not fetch_one("SELECT location_id FROM locations WHERE location_id = %s", (location_id,)):
+        raise ValidationError("Den valgte vaskehal findes ikke")
+
+    if fetch_one("SELECT user_id FROM users WHERE email = %s", (user_email,)):
+        return jsonify({"error": "Emailen er allerede i brug"}), 409
+
+    return jsonify({"message": "Oplysningerne er gyldige"}), 200
+
+
 @app.post("/api/sign-up")
 @app.post("/api/signup")
 def sign_up():
@@ -358,9 +371,9 @@ def sign_up():
 
     user_id = uuid.uuid4().hex
     password_hash = generate_password_hash(user_password)
-    code = make_verification_code()
-    code_hash = generate_password_hash(code)
-    verification_subject, verification_body = verification_email(first_name, code)
+    token = make_verification_token()
+    token_hash = generate_password_hash(token)
+    verification_subject, verification_body = verification_email(first_name, user_email, token)
 
     def create_user(cursor):
         cursor.execute(
@@ -393,7 +406,7 @@ def sign_up():
             INSERT INTO email_verification_tokens (
                 verification_id,
                 user_id,
-                code_hash,
+                token_hash,
                 expires_at
             )
             VALUES (%s, %s, %s, DATE_ADD(NOW(), INTERVAL %s MINUTE))
@@ -401,16 +414,9 @@ def sign_up():
             (
                 uuid.uuid4().hex,
                 user_id,
-                code_hash,
+                token_hash,
                 Config.EMAIL_VERIFICATION_TTL_MINUTES,
             ),
-        )
-        queue_email(
-            cursor,
-            user_id,
-            user_email,
-            verification_subject,
-            verification_body,
         )
 
     run_transaction(create_user)
@@ -425,7 +431,7 @@ def sign_up():
             "email": user_email,
             "email_sent": email_sent,
             "message": (
-                "Vi har sendt en 6-cifret kode til din email"
+                "Vi har sendt et bekræftelseslink til din email"
                 if email_sent
                 else "Kontoen er oprettet, men emailen kunne ikke sendes. Kontrollér SMTP og prøv igen."
             ),
@@ -473,15 +479,14 @@ def login():
 def verify_email():
     data = request.get_json(silent=True) or {}
     user_email = email(data)
-    code = verification_code(data)
+    token = verification_token(data)
     verification = fetch_one(
         """
         SELECT
             email_verification_tokens.verification_id,
             email_verification_tokens.user_id,
-            email_verification_tokens.code_hash,
+            email_verification_tokens.token_hash,
             email_verification_tokens.expires_at,
-            email_verification_tokens.attempts,
             email_verification_tokens.verified_at,
             users.first_name,
             users.email
@@ -494,10 +499,7 @@ def verify_email():
     )
 
     if not verification or verification["verified_at"]:
-        return jsonify({"error": "Bekræftelseskoden er ugyldig eller allerede brugt"}), 400
-
-    if verification["attempts"] >= 5:
-        return jsonify({"error": "For mange forsøg. Send en ny kode."}), 429
+        return jsonify({"error": "Bekræftelseslinket er ugyldigt eller allerede brugt"}), 400
 
     active_verification = fetch_one(
         """
@@ -509,19 +511,10 @@ def verify_email():
         (verification["verification_id"],),
     )
     if not active_verification:
-        return jsonify({"error": "Koden er udløbet. Send en ny kode."}), 400
+        return jsonify({"error": "Bekræftelseslinket er udløbet. Send et nyt link."}), 400
 
-    if not check_password_hash(verification["code_hash"], code):
-        execute(
-            """
-            UPDATE email_verification_tokens
-            SET attempts = attempts + 1
-            WHERE verification_id = %s
-              AND verified_at IS NULL
-            """,
-            (verification["verification_id"],),
-        )
-        return jsonify({"error": "Bekræftelseskoden er forkert"}), 400
+    if not check_password_hash(verification["token_hash"], token):
+        return jsonify({"error": "Bekræftelseslinket er ugyldigt"}), 400
 
     welcome_subject = "Velkommen til WashWorld"
     welcome_body = (
@@ -541,14 +534,7 @@ def verify_email():
             (verification["verification_id"],),
         )
         if cursor.rowcount != 1:
-            raise ValidationError("Bekræftelseskoden er ugyldig eller udløbet")
-        queue_email(
-            cursor,
-            verification["user_id"],
-            verification["email"],
-            welcome_subject,
-            welcome_body,
-        )
+            raise ValidationError("Bekræftelseslinket er ugyldigt eller udløbet")
 
     run_transaction(mark_verified)
     deliver_email(verification["email"], welcome_subject, welcome_body)
@@ -577,48 +563,40 @@ def resend_verification():
     )
 
     if not verification or verification["verified_at"]:
-        return jsonify({"message": "Hvis emailen afventer bekræftelse, er der sendt en ny kode"}), 200
+        return jsonify({"message": "Hvis emailen afventer bekræftelse, er der sendt et nyt link"}), 200
 
     if verification["seconds_since_send"] < Config.EMAIL_VERIFICATION_RESEND_SECONDS:
         seconds_left = Config.EMAIL_VERIFICATION_RESEND_SECONDS - verification["seconds_since_send"]
         return jsonify({"error": f"Vent {seconds_left} sekunder, før du sender igen"}), 429
 
-    code = make_verification_code()
-    code_hash = generate_password_hash(code)
-    subject, body = verification_email(verification["first_name"], code)
+    token = make_verification_token()
+    token_hash = generate_password_hash(token)
+    subject, body = verification_email(verification["first_name"], verification["email"], token)
 
-    def replace_code(cursor):
+    def replace_token(cursor):
         cursor.execute(
             """
             UPDATE email_verification_tokens
             SET
-                code_hash = %s,
+                token_hash = %s,
                 expires_at = DATE_ADD(NOW(), INTERVAL %s MINUTE),
-                attempts = 0,
                 last_sent_at = NOW()
             WHERE verification_id = %s
               AND verified_at IS NULL
             """,
             (
-                code_hash,
+                token_hash,
                 Config.EMAIL_VERIFICATION_TTL_MINUTES,
                 verification["verification_id"],
             ),
         )
-        queue_email(
-            cursor,
-            verification["user_id"],
-            verification["email"],
-            subject,
-            body,
-        )
 
-    run_transaction(replace_code)
+    run_transaction(replace_token)
     if not deliver_email(verification["email"], subject, body):
         allow_immediate_verification_resend(verification["user_id"])
         return jsonify({"error": "Emailen kunne ikke sendes. Kontrollér SMTP-opsætningen."}), 503
 
-    return jsonify({"message": "En ny bekræftelseskode er sendt"}), 200
+    return jsonify({"message": "Et nyt bekræftelseslink er sendt"}), 200
 
 
 @app.post("/api/forgot-password")
@@ -639,13 +617,6 @@ def forgot_password():
                 VALUES (%s, %s, %s, DATE_ADD(NOW(), INTERVAL 30 MINUTE))
                 """,
                 (uuid.uuid4().hex, user["user_id"], reset_key),
-            )
-            queue_email(
-                cursor,
-                user["user_id"],
-                user["email"],
-                reset_subject,
-                reset_body,
             )
 
         run_transaction(create_reset)
@@ -705,13 +676,6 @@ def reset_password():
             WHERE user_id = %s
             """,
             (new_password_hash, reset["user_id"]),
-        )
-        queue_email(
-            cursor,
-            reset["user_id"],
-            reset["email"],
-            changed_subject,
-            changed_body,
         )
 
     run_transaction(update_password)

@@ -6,7 +6,7 @@ from validators import (
     license_plate,
     password,
     positive_int,
-    verification_code,
+    verification_token,
 )
 
 
@@ -22,11 +22,12 @@ class ValidatorTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             email({"email": "demo..bruger@washworld.dk"})
 
-    def test_verification_code_requires_six_digits(self):
-        self.assertEqual(verification_code({"code": "123456"}), "123456")
+    def test_verification_token_accepts_url_safe_value(self):
+        token = "A_secure-token_123456789012345678901234"
+        self.assertEqual(verification_token({"token": token}), token)
 
         with self.assertRaises(ValidationError):
-            verification_code({"code": "12A456"})
+            verification_token({"token": "token med mellemrum som er ugyldig"})
 
     def test_short_password_is_rejected(self):
         with self.assertRaises(ValidationError):

@@ -73,7 +73,7 @@ https://washworld.dk/find-wash-world-vaskehal
 
 De samme lokationer bruges i oprettelse af bruger, profilvalg og siden “Find vaskehal”. Hver detaljeside har desuden rutevejledning via de officielle koordinater. Eksisterende brugerrelationer til Tilst, Viby og Højbjerg bevares ved opdateringen.
 
-Oprettelse kræver et gyldigt emailformat, ens emailfelter, et kodeord på mindst otte tegn, nummerplade, telefonnummer og valgt vaskehal. Derefter sendes en 6-cifret engangskode, som skal bruges inden 15 minutter. Kortoplysninger valideres kun i browseren og bliver ikke gemt.
+Oprettelse kræver et gyldigt emailformat, ens emailfelter, et kodeord på mindst otte tegn, nummerplade, telefonnummer og valgt vaskehal. Første trin kontrolleres også af backend, så flowet ikke går videre ved fx en allerede brugt email. Derefter sendes et tidsbegrænset bekræftelseslink; brugeren åbner linket og bekræfter med én knap uden at skrive en kode. Kortoplysninger valideres kun i browseren og bliver ikke gemt.
 
 ## Gmail og emailbekræftelse
 
@@ -83,7 +83,7 @@ Oprettelse kræver et gyldigt emailformat, ens emailfelter, et kodeord på minds
 4. Udfyld `SMTP_USERNAME`, `SMTP_APP_PASSWORD` og `SMTP_FROM` i `.env`.
 5. Genstart backend med `docker compose up --build -d`.
 
-`.env` er ignoreret af Git og må aldrig committed. Engangskoden gemmes kun som et hash i databasen, udløber efter 15 minutter og låses efter fem forkerte forsøg. En ny kode kan tidligst sendes efter 60 sekunder.
+`.env` er ignoreret af Git og må aldrig committed. Linkets hemmelige token gemmes kun som et hash i databasen og udløber efter 15 minutter. Et nyt link kan tidligst sendes efter 60 sekunder. Emails sendes direkte via SMTP og gemmes ikke i databasen.
 
 ## API
 
@@ -91,9 +91,10 @@ Oprettelse kræver et gyldigt emailformat, ens emailfelter, et kodeord på minds
 GET  /api/locations       Henter vaskehaller
 GET  /api/plans           Henter medlemskaber
 POST /api/sign-up         Opretter bruger
+POST /api/sign-up/validate Kontrollerer første oprettelsestrin
 POST /api/login           Logger bruger ind
-POST /api/verify-email    Bekræfter 6-cifret emailkode
-POST /api/resend-verification Sender en ny emailkode
+POST /api/verify-email    Bekræfter email via link-token
+POST /api/resend-verification Sender et nyt bekræftelseslink
 POST /api/forgot-password Sender nulstillingskode
 POST /api/reset-password  Nulstiller kodeord
 GET  /api/me              Henter profil

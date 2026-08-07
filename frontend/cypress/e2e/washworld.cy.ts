@@ -140,6 +140,26 @@ describe("WashWorld dashboard", () => {
     cy.contains("h1", "Dine oplysninger");
   });
 
+  it("stays on the first signup step when the server rejects the details", () => {
+    cy.intercept("POST", "**/api/sign-up/validate", {
+      statusCode: 409,
+      body: { error: "Emailen er allerede i brug" },
+    }).as("validateSignup");
+
+    cy.visit("/opret-bruger");
+    cy.contains("label", "Navn").find("input").type("Valde");
+    cy.get('input[type="email"]').eq(0).type("valde@example.com");
+    cy.get('input[type="email"]').eq(1).type("valde@example.com");
+    cy.contains("label", "Kodeord").find("input").type("kodeord123");
+    cy.contains("label", "Nummerplade").find("input").type("AB 12345");
+    cy.contains("button", "Fortsæt").click();
+
+    cy.wait("@validateSignup");
+    cy.location("pathname").should("eq", "/opret-bruger");
+    cy.contains("Emailen er allerede i brug");
+    cy.contains("h1", "Dine oplysninger");
+  });
+
   it("uses a real endpoint for every bottom-navigation page", () => {
     cy.visit("/login");
     cy.contains("button", "Log ind").click();
@@ -172,7 +192,7 @@ describe("WashWorld dashboard", () => {
     cy.contains("h1", "Log ind");
   });
 
-  it("requires and verifies the emailed signup code", () => {
+  it("verifies email with one button from the emailed link", () => {
     cy.intercept("POST", "**/api/login", {
       statusCode: 403,
       body: {
@@ -182,8 +202,8 @@ describe("WashWorld dashboard", () => {
       },
     }).as("pendingLogin");
     cy.intercept("POST", "**/api/resend-verification", {
-      message: "En ny bekræftelseskode er sendt",
-    }).as("resendCode");
+      message: "Et nyt bekræftelseslink er sendt",
+    }).as("resendLink");
     cy.intercept("POST", "**/api/verify-email", {
       token: "verified-token",
       user: {
@@ -203,21 +223,25 @@ describe("WashWorld dashboard", () => {
 
     cy.visit("/");
     cy.contains("button", "Log ind").click();
+    cy.location("pathname").should("eq", "/login");
+    cy.contains("h1", "Log ind");
     cy.contains("button", "Log ind").click();
     cy.wait("@pendingLogin");
     cy.location("pathname").should("eq", "/bekraeft-email");
     cy.contains("h1", "Bekræft din email");
     cy.contains("demo@washworld.dk");
+    cy.contains("button", "Bekræft email og log ind").should("not.exist");
 
-    cy.contains("button", "Send en ny kode").click();
-    cy.wait("@resendCode");
-    cy.contains("En ny bekræftelseskode er sendt");
+    cy.contains("button", "Send et nyt link").click();
+    cy.wait("@resendLink");
+    cy.contains("Et nyt bekræftelseslink er sendt");
 
-    cy.get('input[aria-label="Bekræftelseskode"]').type("123456");
-    cy.contains("button", "Bekræft og log ind").click();
+    const verificationToken = "secure_email_token_12345678901234567890";
+    cy.visit(`/bekraeft-email?email=demo%40washworld.dk&token=${verificationToken}`);
+    cy.contains("button", "Bekræft email og log ind").click();
     cy.wait("@verifyEmail").its("request.body").should("deep.equal", {
       email: "demo@washworld.dk",
-      code: "123456",
+      token: verificationToken,
     });
     cy.contains("Hej, Demo");
     cy.location("pathname").should("eq", "/hjem");

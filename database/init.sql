@@ -3,7 +3,6 @@ USE cleanwash;
 
 DROP TABLE IF EXISTS password_reset_tokens;
 DROP TABLE IF EXISTS email_verification_tokens;
-DROP TABLE IF EXISTS email_outbox;
 DROP TABLE IF EXISTS wash_history;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS plans;
@@ -60,16 +59,6 @@ CREATE TABLE wash_history (
     FOREIGN KEY (location_id) REFERENCES locations(location_id)
 );
 
-CREATE TABLE email_outbox (
-    email_id CHAR(32) PRIMARY KEY,
-    user_id CHAR(32),
-    email_to VARCHAR(120) NOT NULL,
-    subject VARCHAR(120) NOT NULL,
-    body TEXT NOT NULL,
-    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
-);
-
 CREATE TABLE password_reset_tokens (
     reset_id CHAR(32) PRIMARY KEY,
     user_id CHAR(32) NOT NULL,
@@ -83,9 +72,8 @@ CREATE TABLE password_reset_tokens (
 CREATE TABLE email_verification_tokens (
     verification_id CHAR(32) PRIMARY KEY,
     user_id CHAR(32) NOT NULL UNIQUE,
-    code_hash VARCHAR(255) NOT NULL,
+    token_hash VARCHAR(255) NOT NULL,
     expires_at DATETIME NOT NULL,
-    attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
     last_sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     verified_at DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -129,6 +117,3 @@ INSERT INTO wash_history (wash_id, user_id, location_id, wash_type, washed_at) V
 ('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '11111111111111111111111111111111', 1, 'Plus vask', DATE_SUB(NOW(), INTERVAL 5 DAY)),
 ('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', '11111111111111111111111111111111', 2, 'Plus vask', DATE_SUB(NOW(), INTERVAL 3 DAY)),
 ('cccccccccccccccccccccccccccccccc', '11111111111111111111111111111111', 1, 'Plus vask', DATE_SUB(NOW(), INTERVAL 1 DAY));
-
-INSERT INTO email_outbox (email_id, user_id, email_to, subject, body) VALUES
-('dddddddddddddddddddddddddddddddd', '11111111111111111111111111111111', 'demo@washworld.dk', 'Velkommen til WashWorld', 'Hej Demo. Din demo-bruger er klar.');

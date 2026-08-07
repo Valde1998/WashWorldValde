@@ -75,6 +75,8 @@ export type SignupPayload = LoginPayload & {
   plan_id: number;
 };
 
+export type SignupDetailsPayload = Omit<SignupPayload, "plan_id">;
+
 export type VerificationChallenge = {
   verification_required: true;
   email: string;
@@ -84,7 +86,7 @@ export type VerificationChallenge = {
 
 export type VerifyEmailPayload = {
   email: string;
-  code: string;
+  token: string;
 };
 
 export type ForgotPasswordPayload = {

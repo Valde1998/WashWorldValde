@@ -10,6 +10,7 @@ import type {
   LoginPayload,
   Plan,
   ResetPasswordPayload,
+  SignupDetailsPayload,
   SignupPayload,
 } from "@/types/app";
 import type { AuthScreen } from "@/lib/routes";
@@ -23,10 +24,12 @@ type AuthFlowProps = {
   isLoading: boolean;
   notice: string;
   verificationEmail: string;
+  verificationToken: string;
   onScreenChange: (screen: AuthScreen) => void;
   onLogin: (payload: LoginPayload) => void;
+  onValidateSignup: (payload: SignupDetailsPayload) => Promise<void>;
   onSignup: (payload: SignupPayload) => void;
-  onVerifyEmail: (code: string) => void;
+  onVerifyEmail: () => void;
   onResendVerification: () => void;
   onForgotPassword: (payload: ForgotPasswordPayload) => void;
   onResetPassword: (payload: ResetPasswordPayload) => void;
@@ -61,8 +64,10 @@ export default function AuthFlow({
   isLoading,
   notice,
   verificationEmail,
+  verificationToken,
   onScreenChange,
   onLogin,
+  onValidateSignup,
   onSignup,
   onVerifyEmail,
   onResendVerification,
@@ -87,7 +92,6 @@ export default function AuthFlow({
   const [forgotEmail, setForgotEmail] = useState("");
   const [resetForm, setResetForm] = useState<ResetPasswordPayload>({ reset_key: "", password: "" });
   const [paymentForm, setPaymentForm] = useState({ card: "", expiry: "", cvc: "" });
-  const [verificationCode, setVerificationCode] = useState("");
 
   function goTo(nextScreen: AuthScreen) {
     setFormError("");
@@ -108,7 +112,7 @@ export default function AuthFlow({
     onLogin({ email: loginForm.email.trim().toLowerCase(), password: loginForm.password });
   }
 
-  function submitDetails(event: FormEvent<HTMLFormElement>) {
+  async function submitDetails(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError("");
     if (signupForm.first_name.trim().length < 2) {
@@ -135,13 +139,26 @@ export default function AuthFlow({
       setFormError("Appen henter stadig vaskehaller og abonnementer. Prøv igen om lidt.");
       return;
     }
-    setSignupForm((current) => ({
-      ...current,
-      email: current.email.trim().toLowerCase(),
-      confirm_email: current.confirm_email.trim().toLowerCase(),
-      location_id: current.location_id || locations[0].location_id,
-      plan_id: current.plan_id || plans[0].plan_id,
-    }));
+    const normalizedForm = {
+      ...signupForm,
+      first_name: signupForm.first_name.trim(),
+      email: signupForm.email.trim().toLowerCase(),
+      confirm_email: signupForm.confirm_email.trim().toLowerCase(),
+      license_plate: signupForm.license_plate.trim().toUpperCase(),
+      phone: signupForm.phone.trim(),
+      location_id: signupForm.location_id || locations[0].location_id,
+      plan_id: signupForm.plan_id || plans[0].plan_id,
+    };
+    const { confirm_email: _confirmEmail, plan_id: _planId, ...details } = normalizedForm;
+
+    try {
+      await onValidateSignup(details);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Oplysningerne kunne ikke godkendes.");
+      return;
+    }
+
+    setSignupForm(normalizedForm);
     goTo("plans");
   }
 
@@ -172,16 +189,6 @@ export default function AuthFlow({
       return;
     }
     onForgotPassword({ email: forgotEmail.trim().toLowerCase() });
-  }
-
-  function submitVerification(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setFormError("");
-    if (!/^\d{6}$/.test(verificationCode)) {
-      setFormError("Indtast den 6-cifrede kode fra emailen.");
-      return;
-    }
-    onVerifyEmail(verificationCode);
   }
 
   function submitReset(event: FormEvent<HTMLFormElement>) {
@@ -275,7 +282,7 @@ export default function AuthFlow({
         <section className="auth-content centered-content">
           <div className="success-icon">✓</div>
           <h1>Email er sendt</h1>
-          <p className="screen-intro">Hvis emailen findes, ligger reset-koden i appens email-outbox.</p>
+          <p className="screen-intro">Hvis emailen findes, har vi sendt en reset-kode til din indbakke.</p>
           <button className="primary-button" type="button" onClick={() => goTo("reset")}>Jeg har en reset-kode</button>
           <button className="text-button" type="button" onClick={() => goTo("login")}>Gå tilbage til login</button>
         </section>
@@ -292,31 +299,21 @@ export default function AuthFlow({
           <p className="step-label">Sidste trin</p>
           <h1>Bekræft din email</h1>
           <p className="screen-intro">
-            Vi har sendt en 6-cifret engangskode til <strong>{verificationEmail}</strong>.
-            Koden udløber efter 15 minutter.
+            {verificationToken ? (
+              <>Linket til <strong>{verificationEmail}</strong> er klar. Tryk på knappen for at aktivere medlemskabet.</>
+            ) : (
+              <>Vi har sendt et bekræftelseslink til <strong>{verificationEmail}</strong>. Åbn linket i emailen for at fortsætte.</>
+            )}
           </p>
           {formError ? <p className="form-error">{formError}</p> : null}
           {notice !== "Klar" ? <p className="status-message">{notice}</p> : null}
-          <form className="mobile-form verification-form" noValidate onSubmit={submitVerification}>
-            <label>
-              Bekræftelseskode
-              <input
-                aria-label="Bekræftelseskode"
-                autoComplete="one-time-code"
-                className="verification-code-input"
-                inputMode="numeric"
-                maxLength={6}
-                placeholder="123456"
-                value={verificationCode}
-                onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, ""))}
-              />
-            </label>
-            <button className="primary-button" type="submit" disabled={isLoading}>
-              {isLoading ? "Bekræfter..." : "Bekræft og log ind"}
+          {verificationToken ? (
+            <button className="primary-button verification-form" type="button" disabled={isLoading} onClick={onVerifyEmail}>
+              {isLoading ? "Bekræfter..." : "Bekræft email og log ind"}
             </button>
-          </form>
+          ) : null}
           <button className="text-button" type="button" disabled={isLoading} onClick={onResendVerification}>
-            Send en ny kode
+            Send et nyt link
           </button>
           <button className="text-button muted-text-button" type="button" onClick={() => goTo("signup")}>
             Brug en anden email
@@ -362,7 +359,7 @@ export default function AuthFlow({
             <label>Nummerplade<input autoCapitalize="characters" placeholder="AB 12345" value={signupForm.license_plate} onChange={(event) => setSignupForm((current) => ({ ...current, license_plate: event.target.value.toUpperCase() }))} /></label>
             <label>Telefon<input autoComplete="tel" inputMode="tel" value={signupForm.phone} onChange={(event) => setSignupForm((current) => ({ ...current, phone: event.target.value }))} /></label>
             <label>Foretrukken vaskehal<select value={signupForm.location_id || locations[0]?.location_id || 0} onChange={(event) => setSignupForm((current) => ({ ...current, location_id: Number(event.target.value) }))}>{locations.map((location) => <option key={location.location_id} value={location.location_id}>{location.name} · {location.address}</option>)}</select></label>
-            <button className="primary-button" type="submit" disabled={isLoading || !locations.length || !plans.length}>Fortsæt</button>
+            <button className="primary-button" type="submit" disabled={isLoading || !locations.length || !plans.length}>{isLoading ? "Kontrollerer..." : "Fortsæt"}</button>
           </form>
         ) : null}
 

@@ -21,6 +21,7 @@ import {
   resetPassword,
   signup,
   updateMe,
+  validateSignup,
   verifyEmail,
 } from "@/lib/api";
 import {
@@ -37,6 +38,7 @@ import type {
   LoginPayload,
   Plan,
   ResetPasswordPayload,
+  SignupDetailsPayload,
   SignupPayload,
   UpdateProfilePayload,
   Wash,
@@ -59,6 +61,7 @@ export default function WashWorldApp() {
   const activeTab = appTabForPath(pathname);
   const locationSlug = locationSlugForPath(pathname);
   const verificationEmail = verificationEmailState || searchParams.get("email") || "";
+  const verificationToken = searchParams.get("token") || "";
 
   const dashboardQuery = useQuery({ queryKey: ["dashboard"], queryFn: getDashboard });
   const locationsQuery = useQuery({ queryKey: ["locations"], queryFn: getLocations });
@@ -102,6 +105,7 @@ export default function WashWorldApp() {
   }, [activeTab, isHydrated, profile, router, token]);
 
   function navigateToAuthScreen(screen: AuthScreen) {
+    setNotice("Klar");
     router.push(AUTH_SCREEN_ROUTES[screen]);
   }
 
@@ -159,8 +163,11 @@ export default function WashWorldApp() {
       if (!showVerificationScreen(error)) setNotice(error.message);
     },
   });
+  const validateSignupMutation = useMutation({
+    mutationFn: validateSignup,
+  });
   const verifyEmailMutation = useMutation({
-    mutationFn: (code: string) => verifyEmail({ email: verificationEmail, code }),
+    mutationFn: () => verifyEmail({ email: verificationEmail, token: verificationToken }),
     onSuccess: saveSession,
     onError: (error) => setNotice(error.message),
   });
@@ -235,6 +242,7 @@ export default function WashWorldApp() {
 
   const authLoading =
     loginMutation.isPending ||
+    validateSignupMutation.isPending ||
     signupMutation.isPending ||
     verifyEmailMutation.isPending ||
     resendVerificationMutation.isPending ||
@@ -288,13 +296,17 @@ export default function WashWorldApp() {
       locations={locations}
       notice={notice}
       verificationEmail={verificationEmail}
+      verificationToken={verificationToken}
       onForgotPassword={(payload: ForgotPasswordPayload) => forgotPasswordMutation.mutate(payload)}
       onLogin={(payload: LoginPayload) => loginMutation.mutate(payload)}
       onResendVerification={() => resendVerificationMutation.mutate()}
       onResetPassword={(payload: ResetPasswordPayload) => resetPasswordMutation.mutate(payload)}
       onScreenChange={navigateToAuthScreen}
       onSignup={(payload: SignupPayload) => signupMutation.mutate(payload)}
-      onVerifyEmail={(code) => verifyEmailMutation.mutate(code)}
+      onValidateSignup={(payload: SignupDetailsPayload) =>
+        validateSignupMutation.mutateAsync(payload).then(() => undefined)
+      }
+      onVerifyEmail={() => verifyEmailMutation.mutate()}
       plans={plans}
       screen={routeAuthScreen ?? "welcome"}
     />

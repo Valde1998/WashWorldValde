@@ -44,11 +44,11 @@ def email(data):
     return value
 
 
-def verification_code(data):
-    value = required_text(data, "code", "Verification code", min_length=6, max_length=6)
+def verification_token(data):
+    value = required_text(data, "token", "Verification token", min_length=32, max_length=128)
 
-    if not value.isdigit():
-        raise ValidationError("Verification code must contain 6 digits")
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", value):
+        raise ValidationError("Verification token is invalid")
 
     return value
 

@@ -7,6 +7,7 @@ import type {
   Plan,
   ResetPasswordPayload,
   Session,
+  SignupDetailsPayload,
   SignupPayload,
   UpdateProfilePayload,
   User,
@@ -26,6 +27,7 @@ const ENDPOINTS = {
   forgotPassword: "/api/forgot-password",
   resetPassword: "/api/reset-password",
   signup: "/api/sign-up",
+  validateSignup: "/api/sign-up/validate",
   verifyEmail: "/api/verify-email",
   resendVerification: "/api/resend-verification",
   washHistory: "/api/wash-history",
@@ -115,6 +117,13 @@ export function login(payload: LoginPayload) {
 
 export function signup(payload: SignupPayload) {
   return request<VerificationChallenge>(ENDPOINTS.signup, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function validateSignup(payload: SignupDetailsPayload) {
+  return request<ApiMessage>(ENDPOINTS.validateSignup, {
     method: "POST",
     body: JSON.stringify(payload),
   });
