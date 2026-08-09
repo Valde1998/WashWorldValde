@@ -45,8 +45,8 @@ export default function AuthPanel({
 }: AuthPanelProps) {
   const [formError, setFormError] = useState("");
   const [loginForm, setLoginForm] = useState<LoginPayload>({
-    email: "demo@washworld.dk",
-    password: "kodeord123",
+    email: "",
+    password: "",
   });
   const [signupForm, setSignupForm] = useState<SignupPayload>({
     first_name: "",

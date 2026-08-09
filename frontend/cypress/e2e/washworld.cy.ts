@@ -110,6 +110,8 @@ describe("WashWorld dashboard", () => {
     cy.contains("Ren bil. Nemt medlemskab.");
     cy.contains("button", "Log ind").click();
     cy.contains("h1", "Log ind");
+    cy.get('input[type="email"]').type("demo@washworld.dk");
+    cy.get('input[type="password"]').type("kodeord123");
     cy.contains("button", "Log ind").click();
     cy.contains("Hej, Demo");
     cy.location("pathname").should("eq", "/hjem");
@@ -162,6 +164,8 @@ describe("WashWorld dashboard", () => {
 
   it("uses a real endpoint for every bottom-navigation page", () => {
     cy.visit("/login");
+    cy.get('input[type="email"]').type("demo@washworld.dk");
+    cy.get('input[type="password"]').type("kodeord123");
     cy.contains("button", "Log ind").click();
     cy.location("pathname").should("eq", "/hjem");
 
@@ -225,6 +229,8 @@ describe("WashWorld dashboard", () => {
     cy.contains("button", "Log ind").click();
     cy.location("pathname").should("eq", "/login");
     cy.contains("h1", "Log ind");
+    cy.get('input[type="email"]').type("demo@washworld.dk");
+    cy.get('input[type="password"]').type("kodeord123");
     cy.contains("button", "Log ind").click();
     cy.wait("@pendingLogin");
     cy.location("pathname").should("eq", "/bekraeft-email");

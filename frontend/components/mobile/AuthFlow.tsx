@@ -76,8 +76,8 @@ export default function AuthFlow({
 }: AuthFlowProps) {
   const [formError, setFormError] = useState("");
   const [loginForm, setLoginForm] = useState<LoginPayload>({
-    email: "demo@washworld.dk",
-    password: "kodeord123",
+    email: "",
+    password: "",
   });
   const [signupForm, setSignupForm] = useState<SignupDraft>({
     first_name: "",
