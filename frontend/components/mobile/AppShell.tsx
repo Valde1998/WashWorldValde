@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import DashboardChart from "@/components/DashboardChart";
 import { APP_TAB_ROUTES, type AppTab } from "@/lib/routes";
@@ -87,19 +87,23 @@ export default function AppShell({
   }
 
   const selectedLocation = locations.find((location) => location.slug === locationSlug);
-  const filteredLocations = useMemo(() => {
-    const search = locationSearch.trim().toLowerCase();
-    if (!search) return locations;
-    return locations.filter((location) =>
-      [location.name, location.city, location.address].some((value) => value.toLowerCase().includes(search)),
-    );
-  }, [locationSearch, locations]);
-  const homeLocations = useMemo(() => {
-    const preferred = locations.find((location) => location.location_id === user.location_id);
-    return [preferred, ...locations.filter((location) => location.location_id !== user.location_id)]
-      .filter((location): location is Location => Boolean(location))
-      .slice(0, 3);
-  }, [locations, user.location_id]);
+  const search = locationSearch.trim().toLowerCase();
+  const filteredLocations = search
+    ? locations.filter((location) =>
+        [location.name, location.city, location.address].some((value) =>
+          value.toLowerCase().includes(search),
+        ),
+      )
+    : locations;
+  const preferredLocation = locations.find(
+    (location) => location.location_id === user.location_id,
+  );
+  const homeLocations = [
+    preferredLocation,
+    ...locations.filter((location) => location.location_id !== user.location_id),
+  ]
+    .filter((location): location is Location => Boolean(location))
+    .slice(0, 3);
 
   function registerWash(location: Location) {
     onCreateWash(location.location_id, `${user.plan_name} vask`);

@@ -40,19 +40,12 @@ import {
 } from "@/lib/routes";
 import type {
   ForgotPasswordPayload,
-  Location,
   LoginPayload,
-  Plan,
   ResetPasswordPayload,
   SignupDetailsPayload,
   SignupPayload,
   UpdateProfilePayload,
-  Wash,
 } from "@/types/app";
-
-const EMPTY_LOCATIONS: Location[] = [];
-const EMPTY_PLANS: Plan[] = [];
-const EMPTY_WASHES: Wash[] = [];
 
 function WashWorldContent() {
   const queryClient = useQueryClient();
@@ -95,10 +88,9 @@ function WashWorldContent() {
     retry: false,
   });
 
-  const locations = locationsQuery.data ?? EMPTY_LOCATIONS;
-  const plans = plansQuery.data ?? EMPTY_PLANS;
+  const locations = locationsQuery.data ?? [];
+  const plans = plansQuery.data ?? [];
   const profile = profileQuery.data;
-  const washesQueryKey = ["washes", token] as const;
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -224,29 +216,9 @@ function WashWorldContent() {
   const washMutation = useMutation({
     mutationFn: (payload: { locationId: number; washType: string }) =>
       createWash(token ?? "", payload.locationId, payload.washType),
-    onMutate: async (payload) => {
-      await queryClient.cancelQueries({ queryKey: washesQueryKey });
-      const previousWashes = queryClient.getQueryData<Wash[]>(washesQueryKey) ?? [];
-      const location = locations.find((item) => item.location_id === payload.locationId);
-      const optimisticWash: Wash = {
-        wash_id: `optimistic-${Date.now()}`,
-        wash_type: payload.washType,
-        washed_at: new Date().toISOString(),
-        location_name: location?.name ?? "WashWorld",
-        location_city: location?.city ?? "Ukendt",
-        is_optimistic: true,
-      };
-      queryClient.setQueryData<Wash[]>(washesQueryKey, [optimisticWash, ...previousWashes]);
-      setNotice("Vasken registreres...");
-      return { previousWashes };
-    },
+    onMutate: () => setNotice("Vasken registreres..."),
     onSuccess: () => setNotice("Vasken er registreret"),
-    onError: (error, _payload, context) => {
-      if (context?.previousWashes) {
-        queryClient.setQueryData<Wash[]>(washesQueryKey, context.previousWashes);
-      }
-      handleProtectedError(error);
-    },
+    onError: handleProtectedError,
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ["washes"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
@@ -296,7 +268,7 @@ function WashWorldContent() {
         onSaveProfile={(payload) => updateMutation.mutate(payload)}
         plans={plans}
         user={profile}
-        washes={washesQuery.data ?? EMPTY_WASHES}
+        washes={washesQuery.data ?? []}
         washesError={washesQuery.isError}
         washesLoading={washesQuery.isLoading}
       />

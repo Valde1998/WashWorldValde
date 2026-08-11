@@ -18,21 +18,6 @@ import type {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5001";
 
-const ENDPOINTS = {
-  dashboard: "/api/dashboard",
-  locations: "/api/locations",
-  login: "/api/login",
-  me: "/api/me",
-  plans: "/api/plans",
-  forgotPassword: "/api/forgot-password",
-  resetPassword: "/api/reset-password",
-  signup: "/api/sign-up",
-  validateSignup: "/api/sign-up/validate",
-  verifyEmail: "/api/verify-email",
-  resendVerification: "/api/resend-verification",
-  washHistory: "/api/wash-history",
-} as const;
-
 type RequestOptions = RequestInit & {
   token?: string | null;
 };
@@ -97,72 +82,72 @@ async function request<T>(path: string, options: RequestOptions = {}) {
 }
 
 export function getDashboard() {
-  return request<Dashboard>(ENDPOINTS.dashboard);
+  return request<Dashboard>("/api/dashboard");
 }
 
 export function getLocations() {
-  return request<Location[]>(ENDPOINTS.locations);
+  return request<Location[]>("/api/locations");
 }
 
 export function getPlans() {
-  return request<Plan[]>(ENDPOINTS.plans);
+  return request<Plan[]>("/api/plans");
 }
 
 export function login(payload: LoginPayload) {
-  return request<Session>(ENDPOINTS.login, {
+  return request<Session>("/api/login", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export function signup(payload: SignupPayload) {
-  return request<VerificationChallenge>(ENDPOINTS.signup, {
+  return request<VerificationChallenge>("/api/sign-up", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export function validateSignup(payload: SignupDetailsPayload) {
-  return request<ApiMessage>(ENDPOINTS.validateSignup, {
+  return request<ApiMessage>("/api/sign-up/validate", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export function verifyEmail(payload: VerifyEmailPayload) {
-  return request<Session>(ENDPOINTS.verifyEmail, {
+  return request<Session>("/api/verify-email", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export function resendVerification(email: string) {
-  return request<ApiMessage>(ENDPOINTS.resendVerification, {
+  return request<ApiMessage>("/api/resend-verification", {
     method: "POST",
     body: JSON.stringify({ email }),
   });
 }
 
 export function forgotPassword(payload: ForgotPasswordPayload) {
-  return request<ApiMessage>(ENDPOINTS.forgotPassword, {
+  return request<ApiMessage>("/api/forgot-password", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export function resetPassword(payload: ResetPasswordPayload) {
-  return request<ApiMessage>(ENDPOINTS.resetPassword, {
+  return request<ApiMessage>("/api/reset-password", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export function getMe(token: string) {
-  return request<User>(ENDPOINTS.me, { token });
+  return request<User>("/api/me", { token });
 }
 
 export function updateMe(token: string, payload: UpdateProfilePayload) {
-  return request<User>(ENDPOINTS.me, {
+  return request<User>("/api/me", {
     method: "PUT",
     token,
     body: JSON.stringify(payload),
@@ -170,11 +155,11 @@ export function updateMe(token: string, payload: UpdateProfilePayload) {
 }
 
 export function getWashes(token: string) {
-  return request<Wash[]>(ENDPOINTS.washHistory, { token });
+  return request<Wash[]>("/api/wash-history", { token });
 }
 
 export function createWash(token: string, locationId: number, washType: string) {
-  return request<{ message: string }>(ENDPOINTS.washHistory, {
+  return request<{ message: string }>("/api/wash-history", {
     method: "POST",
     token,
     body: JSON.stringify({

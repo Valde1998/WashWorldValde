@@ -59,7 +59,6 @@ export type Wash = {
   washed_at: string;
   location_name: string;
   location_city: string;
-  is_optimistic?: boolean;
 };
 
 export type LoginPayload = {

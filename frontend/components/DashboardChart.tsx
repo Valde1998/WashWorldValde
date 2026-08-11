@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo } from "react";
 import type { ApexOptions } from "apexcharts";
 
 import type { Dashboard } from "@/types/app";
@@ -13,17 +12,10 @@ type DashboardChartProps = {
 };
 
 export default function DashboardChart({ data }: DashboardChartProps) {
-  const chart = useMemo(() => {
-    const labels = data.map((item) =>
-      new Intl.DateTimeFormat("da-DK", { weekday: "short" }).format(new Date(item.day)),
-    );
-    const values = data.map((item) => item.washes);
-
-    return {
-      labels: labels.length ? labels : ["Man", "Tir", "Ons", "Tor", "Fre", "Lor", "Son"],
-      values: values.length ? values : [0, 0, 0, 0, 0, 0, 0],
-    };
-  }, [data]);
+  const labels = data.map((item) =>
+    new Intl.DateTimeFormat("da-DK", { weekday: "short" }).format(new Date(item.day)),
+  );
+  const values = data.map((item) => item.washes);
 
   const options: ApexOptions = {
     chart: {
@@ -37,7 +29,7 @@ export default function DashboardChart({ data }: DashboardChartProps) {
       borderColor: "#e5e7eb",
       strokeDashArray: 4,
     },
-    labels: chart.labels,
+    labels: labels.length ? labels : ["Man", "Tir", "Ons", "Tor", "Fre", "Lor", "Son"],
     stroke: {
       curve: "smooth",
       width: 3,
@@ -71,7 +63,7 @@ export default function DashboardChart({ data }: DashboardChartProps) {
       <Chart
         height={240}
         options={options}
-        series={[{ name: "Vaske", data: chart.values }]}
+        series={[{ name: "Vaske", data: values.length ? values : [0, 0, 0, 0, 0, 0, 0] }]}
         type="area"
       />
     </section>
