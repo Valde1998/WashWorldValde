@@ -36,6 +36,7 @@ type AuthFlowProps = {
 };
 
 type SignupDraft = SignupPayload & { confirm_email: string };
+type PaymentForm = { card: string; expiry: string; cvc: string };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,63}$/;
 
@@ -91,7 +92,23 @@ export default function AuthFlow({
   });
   const [forgotEmail, setForgotEmail] = useState("");
   const [resetForm, setResetForm] = useState<ResetPasswordPayload>({ reset_key: "", password: "" });
-  const [paymentForm, setPaymentForm] = useState({ card: "", expiry: "", cvc: "" });
+  const [paymentForm, setPaymentForm] = useState<PaymentForm>({ card: "", expiry: "", cvc: "" });
+
+  function updateLogin(changes: Partial<LoginPayload>) {
+    setLoginForm((current) => ({ ...current, ...changes }));
+  }
+
+  function updateSignup(changes: Partial<SignupDraft>) {
+    setSignupForm((current) => ({ ...current, ...changes }));
+  }
+
+  function updatePayment(changes: Partial<PaymentForm>) {
+    setPaymentForm((current) => ({ ...current, ...changes }));
+  }
+
+  function updateReset(changes: Partial<ResetPasswordPayload>) {
+    setResetForm((current) => ({ ...current, ...changes }));
+  }
 
   function goTo(nextScreen: AuthScreen) {
     setFormError("");
@@ -266,12 +283,7 @@ export default function AuthFlow({
                   className={`mobile-plan-card ${isSelected ? "selected" : ""}`}
                   key={plan.plan_id}
                   type="button"
-                  onClick={() =>
-                    setSignupForm((current) => ({
-                      ...current,
-                      plan_id: plan.plan_id,
-                    }))
-                  }
+                  onClick={() => updateSignup({ plan_id: plan.plan_id })}
                 >
                   {index === 1 ? (
                     <span className="popular-badge">Mest populær</span>
@@ -322,12 +334,7 @@ export default function AuthFlow({
                 maxLength={19}
                 placeholder="1234 5678 9012 3456"
                 value={paymentForm.card}
-                onChange={(event) =>
-                  setPaymentForm((current) => ({
-                    ...current,
-                    card: event.target.value,
-                  }))
-                }
+                onChange={(event) => updatePayment({ card: event.target.value })}
               />
             </label>
             <div className="form-row">
@@ -339,12 +346,7 @@ export default function AuthFlow({
                   maxLength={5}
                   placeholder="MM/ÅÅ"
                   value={paymentForm.expiry}
-                  onChange={(event) =>
-                    setPaymentForm((current) => ({
-                      ...current,
-                      expiry: event.target.value,
-                    }))
-                  }
+                  onChange={(event) => updatePayment({ expiry: event.target.value })}
                 />
               </label>
               <label>
@@ -355,12 +357,7 @@ export default function AuthFlow({
                   maxLength={3}
                   placeholder="123"
                   value={paymentForm.cvc}
-                  onChange={(event) =>
-                    setPaymentForm((current) => ({
-                      ...current,
-                      cvc: event.target.value,
-                    }))
-                  }
+                  onChange={(event) => updatePayment({ cvc: event.target.value })}
                 />
               </label>
             </div>
@@ -508,12 +505,7 @@ export default function AuthFlow({
                 autoComplete="email"
                 type="email"
                 value={loginForm.email}
-                onChange={(event) =>
-                  setLoginForm((current) => ({
-                    ...current,
-                    email: event.target.value,
-                  }))
-                }
+                onChange={(event) => updateLogin({ email: event.target.value })}
               />
             </label>
             <label>
@@ -523,12 +515,7 @@ export default function AuthFlow({
                 minLength={8}
                 type="password"
                 value={loginForm.password}
-                onChange={(event) =>
-                  setLoginForm((current) => ({
-                    ...current,
-                    password: event.target.value,
-                  }))
-                }
+                onChange={(event) => updateLogin({ password: event.target.value })}
               />
             </label>
             <button
@@ -562,12 +549,7 @@ export default function AuthFlow({
                 autoComplete="name"
                 minLength={2}
                 value={signupForm.first_name}
-                onChange={(event) =>
-                  setSignupForm((current) => ({
-                    ...current,
-                    first_name: event.target.value,
-                  }))
-                }
+                onChange={(event) => updateSignup({ first_name: event.target.value })}
               />
             </label>
             <label>
@@ -576,12 +558,7 @@ export default function AuthFlow({
                 autoComplete="email"
                 type="email"
                 value={signupForm.email}
-                onChange={(event) =>
-                  setSignupForm((current) => ({
-                    ...current,
-                    email: event.target.value,
-                  }))
-                }
+                onChange={(event) => updateSignup({ email: event.target.value })}
               />
             </label>
             <label>
@@ -590,12 +567,7 @@ export default function AuthFlow({
                 autoComplete="email"
                 type="email"
                 value={signupForm.confirm_email}
-                onChange={(event) =>
-                  setSignupForm((current) => ({
-                    ...current,
-                    confirm_email: event.target.value,
-                  }))
-                }
+                onChange={(event) => updateSignup({ confirm_email: event.target.value })}
               />
             </label>
             <label>
@@ -605,12 +577,7 @@ export default function AuthFlow({
                 minLength={8}
                 type="password"
                 value={signupForm.password}
-                onChange={(event) =>
-                  setSignupForm((current) => ({
-                    ...current,
-                    password: event.target.value,
-                  }))
-                }
+                onChange={(event) => updateSignup({ password: event.target.value })}
               />
               <small>Mindst 8 tegn</small>
             </label>
@@ -621,10 +588,7 @@ export default function AuthFlow({
                 placeholder="AB 12345"
                 value={signupForm.license_plate}
                 onChange={(event) =>
-                  setSignupForm((current) => ({
-                    ...current,
-                    license_plate: event.target.value.toUpperCase(),
-                  }))
+                  updateSignup({ license_plate: event.target.value.toUpperCase() })
                 }
               />
             </label>
@@ -634,12 +598,7 @@ export default function AuthFlow({
                 autoComplete="tel"
                 inputMode="tel"
                 value={signupForm.phone}
-                onChange={(event) =>
-                  setSignupForm((current) => ({
-                    ...current,
-                    phone: event.target.value,
-                  }))
-                }
+                onChange={(event) => updateSignup({ phone: event.target.value })}
               />
             </label>
             <label>
@@ -647,10 +606,7 @@ export default function AuthFlow({
               <select
                 value={signupForm.location_id || locations[0]?.location_id || 0}
                 onChange={(event) =>
-                  setSignupForm((current) => ({
-                    ...current,
-                    location_id: Number(event.target.value),
-                  }))
+                  updateSignup({ location_id: Number(event.target.value) })
                 }
               >
                 {locations.map((location) => (
@@ -699,12 +655,7 @@ export default function AuthFlow({
                 maxLength={32}
                 minLength={32}
                 value={resetForm.reset_key}
-                onChange={(event) =>
-                  setResetForm((current) => ({
-                    ...current,
-                    reset_key: event.target.value,
-                  }))
-                }
+                onChange={(event) => updateReset({ reset_key: event.target.value })}
               />
             </label>
             <label>
@@ -714,12 +665,7 @@ export default function AuthFlow({
                 minLength={8}
                 type="password"
                 value={resetForm.password}
-                onChange={(event) =>
-                  setResetForm((current) => ({
-                    ...current,
-                    password: event.target.value,
-                  }))
-                }
+                onChange={(event) => updateReset({ password: event.target.value })}
               />
             </label>
             <button

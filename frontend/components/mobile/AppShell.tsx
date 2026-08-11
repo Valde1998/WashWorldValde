@@ -82,6 +82,10 @@ export default function AppShell({
     plan_id: user.plan_id,
   });
 
+  function updateProfile(changes: Partial<UpdateProfilePayload>) {
+    setProfileForm((current) => ({ ...current, ...changes }));
+  }
+
   const selectedLocation = locations.find((location) => location.slug === locationSlug);
   const filteredLocations = useMemo(() => {
     const search = locationSearch.trim().toLowerCase();
@@ -393,12 +397,7 @@ export default function AppShell({
                 Navn
                 <input
                   minLength={2}
-                  onChange={(event) =>
-                    setProfileForm((current) => ({
-                      ...current,
-                      first_name: event.target.value,
-                    }))
-                  }
+                  onChange={(event) => updateProfile({ first_name: event.target.value })}
                   value={profileForm.first_name}
                 />
               </label>
@@ -406,10 +405,7 @@ export default function AppShell({
                 Nummerplade
                 <input
                   onChange={(event) =>
-                    setProfileForm((current) => ({
-                      ...current,
-                      license_plate: event.target.value.toUpperCase(),
-                    }))
+                    updateProfile({ license_plate: event.target.value.toUpperCase() })
                   }
                   value={profileForm.license_plate}
                 />
@@ -418,9 +414,7 @@ export default function AppShell({
                 Telefon
                 <input
                   inputMode="tel"
-                  onChange={(event) =>
-                    setProfileForm((current) => ({ ...current, phone: event.target.value }))
-                  }
+                  onChange={(event) => updateProfile({ phone: event.target.value })}
                   value={profileForm.phone}
                 />
               </label>
@@ -428,10 +422,7 @@ export default function AppShell({
                 Foretrukken vaskehal
                 <select
                   onChange={(event) =>
-                    setProfileForm((current) => ({
-                      ...current,
-                      location_id: Number(event.target.value),
-                    }))
+                    updateProfile({ location_id: Number(event.target.value) })
                   }
                   value={profileForm.location_id}
                 >
@@ -446,10 +437,7 @@ export default function AppShell({
                 Abonnement
                 <select
                   onChange={(event) =>
-                    setProfileForm((current) => ({
-                      ...current,
-                      plan_id: Number(event.target.value),
-                    }))
+                    updateProfile({ plan_id: Number(event.target.value) })
                   }
                   value={profileForm.plan_id}
                 >
