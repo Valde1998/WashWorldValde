@@ -5,7 +5,6 @@ import Link from "next/link";
 import type { FormEvent } from "react";
 import { useState } from "react";
 
-import DashboardChart from "@/components/DashboardChart";
 import { APP_TAB_ROUTES, type AppTab } from "@/lib/routes";
 import type { Dashboard, Location, Plan, UpdateProfilePayload, User, Wash } from "@/types/app";
 
@@ -52,6 +51,40 @@ function AppHeader({ title }: { title: string }) {
       <Image alt="WashWorld" height={38} src="/logo.webp" width={124} priority />
       <span>{title}</span>
     </header>
+  );
+}
+
+function ActivityChart({ data }: { data: Dashboard["washes_per_day"] }) {
+  const bars = data.length
+    ? data.map((item) => ({
+        label: new Intl.DateTimeFormat("da-DK", { weekday: "short" }).format(
+          new Date(item.day),
+        ),
+        value: item.washes,
+      }))
+    : ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"].map((label) => ({
+        label,
+        value: 0,
+      }));
+  const highestValue = Math.max(...bars.map((bar) => bar.value), 1);
+
+  return (
+    <section className="chart-panel">
+      <p className="eyebrow">Aktivitet</p>
+      <h2>Vaske seneste uge</h2>
+      <div className="simple-chart">
+        {bars.map((bar, index) => (
+          <div className="chart-column" key={`${bar.label}-${index}`}>
+            <div
+              className="chart-bar"
+              style={{ height: `${(bar.value / highestValue) * 100}%` }}
+              title={`${bar.value} vaske`}
+            />
+            <span>{bar.label}</span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -203,7 +236,7 @@ export default function AppShell({
               <p>Dit overblik</p>
               <h1>Aktivitet</h1>
             </div>
-            <DashboardChart data={dashboard?.washes_per_day ?? []} />
+            <ActivityChart data={dashboard?.washes_per_day ?? []} />
             <div className="mobile-stats-grid">
               <article>
                 <strong>{washes.length}</strong>

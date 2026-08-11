@@ -12,7 +12,6 @@ import {
 
 import AppShell from "@/components/mobile/AppShell";
 import AuthFlow from "@/components/mobile/AuthFlow";
-import { useStoredToken } from "@/hooks/useStoredToken";
 import {
   ApiError,
   createWash,
@@ -52,7 +51,8 @@ function WashWorldContent() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { token, isHydrated, saveToken, clearToken } = useStoredToken();
+  const [token, setToken] = useState<string | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [notice, setNotice] = useState("Klar");
   const [verificationEmailState, setVerificationEmail] = useState("");
   const automaticVerificationAttempt = useRef("");
@@ -63,6 +63,25 @@ function WashWorldContent() {
   const locationSlug = locationSlugForPath(pathname);
   const verificationEmail = verificationEmailState || searchParams.get("email") || "";
   const verificationToken = searchParams.get("token") || "";
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setToken(window.localStorage.getItem("washworld_token"));
+      setIsHydrated(true);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  function saveToken(nextToken: string) {
+    window.localStorage.setItem("washworld_token", nextToken);
+    setToken(nextToken);
+  }
+
+  function clearToken() {
+    window.localStorage.removeItem("washworld_token");
+    setToken(null);
+  }
 
   // Public data loads for every screen; member data only loads with a session.
   const dashboardQuery = useQuery({ queryKey: ["dashboard"], queryFn: getDashboard });
