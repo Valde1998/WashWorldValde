@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import AppShell from "@/components/mobile/AppShell";
 import AuthFlow from "@/components/mobile/AuthFlow";
@@ -48,7 +54,7 @@ const EMPTY_LOCATIONS: Location[] = [];
 const EMPTY_PLANS: Plan[] = [];
 const EMPTY_WASHES: Wash[] = [];
 
-export default function WashWorldApp() {
+function WashWorldContent() {
   const queryClient = useQueryClient();
   const pathname = usePathname();
   const router = useRouter();
@@ -322,5 +328,25 @@ export default function WashWorldApp() {
       plans={plans}
       screen={routeAuthScreen ?? "welcome"}
     />
+  );
+}
+
+export default function WashWorldApp() {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 30_000,
+            retry: 1,
+          },
+        },
+      }),
+  );
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <WashWorldContent />
+    </QueryClientProvider>
   );
 }
