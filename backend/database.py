@@ -11,7 +11,10 @@ def json_value(value):
     if isinstance(value, Decimal):
         return float(value)
 
-    if isinstance(value, (date, datetime)):
+    if isinstance(value, datetime):
+        return f"{value.isoformat()}Z"
+
+    if isinstance(value, date):
         return value.isoformat()
 
     return value
@@ -33,6 +36,7 @@ def get_connection():
                 user=Config.DB_USER,
                 password=Config.DB_PASSWORD,
                 database=Config.DB_NAME,
+                time_zone="+00:00",
             )
         except mysql.connector.Error as error:
             last_error = error
