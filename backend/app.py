@@ -29,11 +29,16 @@ from validators import (
     verification_token,
 )
 
+# --- Application setup ---
+
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = Config.JWT_SECRET_KEY
 
 CORS(app, resources={r"/api/*": {"origins": Config.CORS_ORIGINS}})
 JWTManager(app)
+
+
+# --- Shared profile and session helpers ---
 
 
 def get_profile(user_id):
@@ -63,6 +68,9 @@ def get_profile(user_id):
 def create_session_response(user_id, status_code=200):
     token = create_access_token(identity=user_id)
     return jsonify({"token": token, "user": get_profile(user_id)}), status_code
+
+
+# --- Database bootstrap and seed data ---
 
 
 def ensure_runtime_schema():
@@ -317,6 +325,9 @@ def prepare_application():
     ensure_demo_user()
 
 
+# --- Email and account validation helpers ---
+
+
 def make_verification_token():
     return secrets.token_urlsafe(32)
 
@@ -388,6 +399,9 @@ def validate_location_and_plan(location_id, plan_id):
 
     if not fetch_one("SELECT plan_id FROM plans WHERE plan_id = %s", (plan_id,)):
         raise ValidationError("Plan does not exist")
+
+
+# --- Public status and catalogue endpoints ---
 
 
 @app.get("/")
@@ -468,6 +482,9 @@ def dashboard():
     )
 
     return jsonify({"totals": totals, "washes_per_day": washes_per_day})
+
+
+# --- Account and authentication endpoints ---
 
 
 @app.post("/api/sign-up/validate")
@@ -846,6 +863,9 @@ def reset_password():
     return jsonify({"message": "Password was reset"}), 200
 
 
+# --- Authenticated member endpoints ---
+
+
 @app.get("/api/me")
 @jwt_required()
 def me():
@@ -933,6 +953,9 @@ def create_wash_history():
     )
 
     return jsonify({"message": "Wash was added"}), 201
+
+
+# --- Error responses and local entry point ---
 
 
 @app.errorhandler(ValidationError)

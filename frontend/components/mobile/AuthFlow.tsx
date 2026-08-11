@@ -208,17 +208,39 @@ export default function AuthFlow({
   if (screen === "welcome") {
     return (
       <main className="mobile-frame welcome-screen">
-        <Image alt="WashWorld vaskehal" className="welcome-image" fill sizes="430px" src="/location-tilst.webp" priority />
+        <Image
+          alt="WashWorld vaskehal"
+          className="welcome-image"
+          fill
+          priority
+          sizes="430px"
+          src="/location-tilst.webp"
+        />
         <div className="welcome-overlay" />
         <div className="welcome-content">
           <Image alt="WashWorld" height={58} src="/logo.webp" width={186} priority />
           <div className="welcome-copy">
             <h1>Ren bil. Nemt medlemskab.</h1>
-            <p>Find nærmeste vaskehal, vis din QR-kode og hold styr på alle dine vaske.</p>
+            <p>
+              Find nærmeste vaskehal, vis din QR-kode og hold styr på alle dine
+              vaske.
+            </p>
           </div>
           <div className="welcome-actions">
-            <button className="primary-button" type="button" onClick={() => goTo("login")}>Log ind</button>
-            <button className="dark-button" type="button" onClick={() => goTo("signup")}>Bliv medlem</button>
+            <button
+              className="primary-button"
+              type="button"
+              onClick={() => goTo("login")}
+            >
+              Log ind
+            </button>
+            <button
+              className="dark-button"
+              type="button"
+              onClick={() => goTo("signup")}
+            >
+              Bliv medlem
+            </button>
           </div>
         </div>
       </main>
@@ -232,21 +254,49 @@ export default function AuthFlow({
         <section className="auth-content wide-auth-content">
           <p className="step-label">Trin 2 af 3</p>
           <h1>Vask som passer til dig</h1>
-          <p className="screen-intro">Vælg det abonnement, der matcher dit behov. Du kan altid skifte senere.</p>
+          <p className="screen-intro">
+            Vælg det abonnement, der matcher dit behov. Du kan altid skifte
+            senere.
+          </p>
           <div className="mobile-plan-list">
             {plans.map((plan, index) => {
               const isSelected = signupForm.plan_id === plan.plan_id;
               return (
-                <button className={`mobile-plan-card ${isSelected ? "selected" : ""}`} key={plan.plan_id} type="button" onClick={() => setSignupForm((current) => ({ ...current, plan_id: plan.plan_id }))}>
-                  {index === 1 ? <span className="popular-badge">Mest populær</span> : null}
-                  <span><strong>{plan.name}</strong><small>{plan.description}</small></span>
-                  <span className="plan-price"><strong>{plan.monthly_price}</strong><small>kr./md.</small></span>
+                <button
+                  className={`mobile-plan-card ${isSelected ? "selected" : ""}`}
+                  key={plan.plan_id}
+                  type="button"
+                  onClick={() =>
+                    setSignupForm((current) => ({
+                      ...current,
+                      plan_id: plan.plan_id,
+                    }))
+                  }
+                >
+                  {index === 1 ? (
+                    <span className="popular-badge">Mest populær</span>
+                  ) : null}
+                  <span>
+                    <strong>{plan.name}</strong>
+                    <small>{plan.description}</small>
+                  </span>
+                  <span className="plan-price">
+                    <strong>{plan.monthly_price}</strong>
+                    <small>kr./md.</small>
+                  </span>
                 </button>
               );
             })}
           </div>
           {formError ? <p className="form-error">{formError}</p> : null}
-          <button className="primary-button sticky-action" type="button" disabled={!signupForm.plan_id} onClick={() => goTo("payment")}>Fortsæt til betaling</button>
+          <button
+            className="primary-button sticky-action"
+            disabled={!signupForm.plan_id}
+            type="button"
+            onClick={() => goTo("payment")}
+          >
+            Fortsæt til betaling
+          </button>
         </section>
       </main>
     );
@@ -259,16 +309,75 @@ export default function AuthFlow({
         <section className="auth-content">
           <p className="step-label">Trin 3 af 3</p>
           <h1>Opdater dit betalingskort</h1>
-          <p className="screen-intro">Kortoplysningerne bruges kun til demo og bliver ikke gemt.</p>
+          <p className="screen-intro">
+            Kortoplysningerne bruges kun til demo og bliver ikke gemt.
+          </p>
           {formError ? <p className="form-error">{formError}</p> : null}
           <form className="mobile-form" noValidate onSubmit={submitPayment}>
-            <label>Kortnummer<input autoComplete="cc-number" inputMode="numeric" maxLength={19} placeholder="1234 5678 9012 3456" value={paymentForm.card} onChange={(event) => setPaymentForm((current) => ({ ...current, card: event.target.value }))} /></label>
+            <label>
+              Kortnummer
+              <input
+                autoComplete="cc-number"
+                inputMode="numeric"
+                maxLength={19}
+                placeholder="1234 5678 9012 3456"
+                value={paymentForm.card}
+                onChange={(event) =>
+                  setPaymentForm((current) => ({
+                    ...current,
+                    card: event.target.value,
+                  }))
+                }
+              />
+            </label>
             <div className="form-row">
-              <label>Udløbsdato<input autoComplete="cc-exp" inputMode="numeric" maxLength={5} placeholder="MM/ÅÅ" value={paymentForm.expiry} onChange={(event) => setPaymentForm((current) => ({ ...current, expiry: event.target.value }))} /></label>
-              <label>CVC<input autoComplete="cc-csc" inputMode="numeric" maxLength={3} placeholder="123" value={paymentForm.cvc} onChange={(event) => setPaymentForm((current) => ({ ...current, cvc: event.target.value }))} /></label>
+              <label>
+                Udløbsdato
+                <input
+                  autoComplete="cc-exp"
+                  inputMode="numeric"
+                  maxLength={5}
+                  placeholder="MM/ÅÅ"
+                  value={paymentForm.expiry}
+                  onChange={(event) =>
+                    setPaymentForm((current) => ({
+                      ...current,
+                      expiry: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+              <label>
+                CVC
+                <input
+                  autoComplete="cc-csc"
+                  inputMode="numeric"
+                  maxLength={3}
+                  placeholder="123"
+                  value={paymentForm.cvc}
+                  onChange={(event) =>
+                    setPaymentForm((current) => ({
+                      ...current,
+                      cvc: event.target.value,
+                    }))
+                  }
+                />
+              </label>
             </div>
-            <div className="payment-summary"><span>Valgt abonnement</span><strong>{plans.find((plan) => plan.plan_id === signupForm.plan_id)?.name ?? "WashWorld"}</strong></div>
-            <button className="primary-button" type="submit" disabled={isLoading}>{isLoading ? "Opretter medlemskab..." : "Start medlemskab"}</button>
+            <div className="payment-summary">
+              <span>Valgt abonnement</span>
+              <strong>
+                {plans.find((plan) => plan.plan_id === signupForm.plan_id)
+                  ?.name ?? "WashWorld"}
+              </strong>
+            </div>
+            <button
+              className="primary-button"
+              disabled={isLoading}
+              type="submit"
+            >
+              {isLoading ? "Opretter medlemskab..." : "Start medlemskab"}
+            </button>
           </form>
         </section>
       </main>
@@ -282,9 +391,23 @@ export default function AuthFlow({
         <section className="auth-content centered-content">
           <div className="success-icon">✓</div>
           <h1>Email er sendt</h1>
-          <p className="screen-intro">Hvis emailen findes, har vi sendt en reset-kode til din indbakke.</p>
-          <button className="primary-button" type="button" onClick={() => goTo("reset")}>Jeg har en reset-kode</button>
-          <button className="text-button" type="button" onClick={() => goTo("login")}>Gå tilbage til login</button>
+          <p className="screen-intro">
+            Hvis emailen findes, har vi sendt en reset-kode til din indbakke.
+          </p>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={() => goTo("reset")}
+          >
+            Jeg har en reset-kode
+          </button>
+          <button
+            className="text-button"
+            type="button"
+            onClick={() => goTo("login")}
+          >
+            Gå tilbage til login
+          </button>
         </section>
       </main>
     );
@@ -300,22 +423,43 @@ export default function AuthFlow({
           <h1>Bekræft din email</h1>
           <p className="screen-intro">
             {verificationToken ? (
-              <>Din email <strong>{verificationEmail}</strong> bekræftes nu automatisk.</>
+              <>
+                Din email <strong>{verificationEmail}</strong> bekræftes nu
+                automatisk.
+              </>
             ) : (
-              <>Vi har sendt et bekræftelseslink til <strong>{verificationEmail}</strong>. Åbn linket i emailen for at fortsætte.</>
+              <>
+                Vi har sendt et bekræftelseslink til{" "}
+                <strong>{verificationEmail}</strong>. Åbn linket i emailen for
+                at fortsætte.
+              </>
             )}
           </p>
           {formError ? <p className="form-error">{formError}</p> : null}
           {notice !== "Klar" ? <p className="status-message">{notice}</p> : null}
           {verificationToken ? (
-            <button className="primary-button verification-form" type="button" disabled={isLoading} onClick={onVerifyEmail}>
+            <button
+              className="primary-button verification-form"
+              disabled={isLoading}
+              type="button"
+              onClick={onVerifyEmail}
+            >
               {isLoading ? "Bekræfter..." : "Prøv bekræftelse igen"}
             </button>
           ) : null}
-          <button className="text-button" type="button" disabled={isLoading} onClick={onResendVerification}>
+          <button
+            className="text-button"
+            disabled={isLoading}
+            type="button"
+            onClick={onResendVerification}
+          >
             Send et nyt link
           </button>
-          <button className="text-button muted-text-button" type="button" onClick={() => goTo("signup")}>
+          <button
+            className="text-button muted-text-button"
+            type="button"
+            onClick={() => goTo("signup")}
+          >
             Brug en anden email
           </button>
         </section>
@@ -324,10 +468,26 @@ export default function AuthFlow({
   }
 
   const screenConfig = {
-    login: { title: "Log ind", intro: "Log ind for at se dit medlemskab og dine seneste vaske.", back: "welcome" as AuthScreen },
-    signup: { title: "Dine oplysninger", intro: "Opret din profil. Vi validerer emailen, før du kan fortsætte.", back: "welcome" as AuthScreen },
-    forgot: { title: "Glemt adgangskode", intro: "Indtast din email, så sender vi en reset-kode.", back: "login" as AuthScreen },
-    reset: { title: "Nulstil kodeord", intro: "Indtast koden fra emailen og vælg et nyt kodeord.", back: "login" as AuthScreen },
+    login: {
+      title: "Log ind",
+      intro: "Log ind for at se dit medlemskab og dine seneste vaske.",
+      back: "welcome" as AuthScreen,
+    },
+    signup: {
+      title: "Dine oplysninger",
+      intro: "Opret din profil. Vi validerer emailen, før du kan fortsætte.",
+      back: "welcome" as AuthScreen,
+    },
+    forgot: {
+      title: "Glemt adgangskode",
+      intro: "Indtast din email, så sender vi en reset-kode.",
+      back: "login" as AuthScreen,
+    },
+    reset: {
+      title: "Nulstil kodeord",
+      intro: "Indtast koden fra emailen og vælg et nyt kodeord.",
+      back: "login" as AuthScreen,
+    },
   }[screen as "login" | "signup" | "forgot" | "reset"];
 
   return (
@@ -342,39 +502,233 @@ export default function AuthFlow({
 
         {screen === "login" ? (
           <form className="mobile-form" noValidate onSubmit={submitLogin}>
-            <label>Email<input autoComplete="email" type="email" value={loginForm.email} onChange={(event) => setLoginForm((current) => ({ ...current, email: event.target.value }))} /></label>
-            <label>Kodeord<input autoComplete="current-password" minLength={8} type="password" value={loginForm.password} onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))} /></label>
-            <button className="primary-button" type="submit" disabled={isLoading}>{isLoading ? "Logger ind..." : "Log ind"}</button>
-            <button className="text-button" type="button" onClick={() => goTo("forgot")}>Glemt adgangskode?</button>
-            <p className="auth-switch">Har du ikke en bruger? <button type="button" onClick={() => goTo("signup")}>Bliv medlem</button></p>
+            <label>
+              Email
+              <input
+                autoComplete="email"
+                type="email"
+                value={loginForm.email}
+                onChange={(event) =>
+                  setLoginForm((current) => ({
+                    ...current,
+                    email: event.target.value,
+                  }))
+                }
+              />
+            </label>
+            <label>
+              Kodeord
+              <input
+                autoComplete="current-password"
+                minLength={8}
+                type="password"
+                value={loginForm.password}
+                onChange={(event) =>
+                  setLoginForm((current) => ({
+                    ...current,
+                    password: event.target.value,
+                  }))
+                }
+              />
+            </label>
+            <button
+              className="primary-button"
+              disabled={isLoading}
+              type="submit"
+            >
+              {isLoading ? "Logger ind..." : "Log ind"}
+            </button>
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => goTo("forgot")}
+            >
+              Glemt adgangskode?
+            </button>
+            <p className="auth-switch">
+              Har du ikke en bruger?{" "}
+              <button type="button" onClick={() => goTo("signup")}>
+                Bliv medlem
+              </button>
+            </p>
           </form>
         ) : null}
 
         {screen === "signup" ? (
           <form className="mobile-form" noValidate onSubmit={submitDetails}>
-            <label>Navn<input autoComplete="name" minLength={2} value={signupForm.first_name} onChange={(event) => setSignupForm((current) => ({ ...current, first_name: event.target.value }))} /></label>
-            <label>Email<input autoComplete="email" type="email" value={signupForm.email} onChange={(event) => setSignupForm((current) => ({ ...current, email: event.target.value }))} /></label>
-            <label>Gentag email<input autoComplete="email" type="email" value={signupForm.confirm_email} onChange={(event) => setSignupForm((current) => ({ ...current, confirm_email: event.target.value }))} /></label>
-            <label>Kodeord<input autoComplete="new-password" minLength={8} type="password" value={signupForm.password} onChange={(event) => setSignupForm((current) => ({ ...current, password: event.target.value }))} /><small>Mindst 8 tegn</small></label>
-            <label>Nummerplade<input autoCapitalize="characters" placeholder="AB 12345" value={signupForm.license_plate} onChange={(event) => setSignupForm((current) => ({ ...current, license_plate: event.target.value.toUpperCase() }))} /></label>
-            <label>Telefon<input autoComplete="tel" inputMode="tel" value={signupForm.phone} onChange={(event) => setSignupForm((current) => ({ ...current, phone: event.target.value }))} /></label>
-            <label>Foretrukken vaskehal<select value={signupForm.location_id || locations[0]?.location_id || 0} onChange={(event) => setSignupForm((current) => ({ ...current, location_id: Number(event.target.value) }))}>{locations.map((location) => <option key={location.location_id} value={location.location_id}>{location.name} · {location.address}</option>)}</select></label>
-            <button className="primary-button" type="submit" disabled={isLoading || !locations.length || !plans.length}>{isLoading ? "Kontrollerer..." : "Fortsæt"}</button>
+            <label>
+              Navn
+              <input
+                autoComplete="name"
+                minLength={2}
+                value={signupForm.first_name}
+                onChange={(event) =>
+                  setSignupForm((current) => ({
+                    ...current,
+                    first_name: event.target.value,
+                  }))
+                }
+              />
+            </label>
+            <label>
+              Email
+              <input
+                autoComplete="email"
+                type="email"
+                value={signupForm.email}
+                onChange={(event) =>
+                  setSignupForm((current) => ({
+                    ...current,
+                    email: event.target.value,
+                  }))
+                }
+              />
+            </label>
+            <label>
+              Gentag email
+              <input
+                autoComplete="email"
+                type="email"
+                value={signupForm.confirm_email}
+                onChange={(event) =>
+                  setSignupForm((current) => ({
+                    ...current,
+                    confirm_email: event.target.value,
+                  }))
+                }
+              />
+            </label>
+            <label>
+              Kodeord
+              <input
+                autoComplete="new-password"
+                minLength={8}
+                type="password"
+                value={signupForm.password}
+                onChange={(event) =>
+                  setSignupForm((current) => ({
+                    ...current,
+                    password: event.target.value,
+                  }))
+                }
+              />
+              <small>Mindst 8 tegn</small>
+            </label>
+            <label>
+              Nummerplade
+              <input
+                autoCapitalize="characters"
+                placeholder="AB 12345"
+                value={signupForm.license_plate}
+                onChange={(event) =>
+                  setSignupForm((current) => ({
+                    ...current,
+                    license_plate: event.target.value.toUpperCase(),
+                  }))
+                }
+              />
+            </label>
+            <label>
+              Telefon
+              <input
+                autoComplete="tel"
+                inputMode="tel"
+                value={signupForm.phone}
+                onChange={(event) =>
+                  setSignupForm((current) => ({
+                    ...current,
+                    phone: event.target.value,
+                  }))
+                }
+              />
+            </label>
+            <label>
+              Foretrukken vaskehal
+              <select
+                value={signupForm.location_id || locations[0]?.location_id || 0}
+                onChange={(event) =>
+                  setSignupForm((current) => ({
+                    ...current,
+                    location_id: Number(event.target.value),
+                  }))
+                }
+              >
+                {locations.map((location) => (
+                  <option key={location.location_id} value={location.location_id}>
+                    {location.name} · {location.address}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              className="primary-button"
+              disabled={isLoading || !locations.length || !plans.length}
+              type="submit"
+            >
+              {isLoading ? "Kontrollerer..." : "Fortsæt"}
+            </button>
           </form>
         ) : null}
 
         {screen === "forgot" ? (
           <form className="mobile-form" noValidate onSubmit={submitForgot}>
-            <label>Email<input autoComplete="email" type="email" value={forgotEmail} onChange={(event) => setForgotEmail(event.target.value)} /></label>
-            <button className="primary-button" type="submit" disabled={isLoading}>Send email</button>
+            <label>
+              Email
+              <input
+                autoComplete="email"
+                type="email"
+                value={forgotEmail}
+                onChange={(event) => setForgotEmail(event.target.value)}
+              />
+            </label>
+            <button
+              className="primary-button"
+              disabled={isLoading}
+              type="submit"
+            >
+              Send email
+            </button>
           </form>
         ) : null}
 
         {screen === "reset" ? (
           <form className="mobile-form" noValidate onSubmit={submitReset}>
-            <label>Reset-kode<input maxLength={32} minLength={32} value={resetForm.reset_key} onChange={(event) => setResetForm((current) => ({ ...current, reset_key: event.target.value }))} /></label>
-            <label>Nyt kodeord<input autoComplete="new-password" minLength={8} type="password" value={resetForm.password} onChange={(event) => setResetForm((current) => ({ ...current, password: event.target.value }))} /></label>
-            <button className="primary-button" type="submit" disabled={isLoading}>Gem nyt kodeord</button>
+            <label>
+              Reset-kode
+              <input
+                maxLength={32}
+                minLength={32}
+                value={resetForm.reset_key}
+                onChange={(event) =>
+                  setResetForm((current) => ({
+                    ...current,
+                    reset_key: event.target.value,
+                  }))
+                }
+              />
+            </label>
+            <label>
+              Nyt kodeord
+              <input
+                autoComplete="new-password"
+                minLength={8}
+                type="password"
+                value={resetForm.password}
+                onChange={(event) =>
+                  setResetForm((current) => ({
+                    ...current,
+                    password: event.target.value,
+                  }))
+                }
+              />
+            </label>
+            <button
+              className="primary-button"
+              disabled={isLoading}
+              type="submit"
+            >
+              Gem nyt kodeord
+            </button>
           </form>
         ) : null}
       </section>

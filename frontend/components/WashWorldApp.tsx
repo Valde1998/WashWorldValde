@@ -64,12 +64,14 @@ function WashWorldContent() {
   const [verificationEmailState, setVerificationEmail] = useState("");
   const automaticVerificationAttempt = useRef("");
 
+  // Resolve the current URL into either an authentication screen or an app tab.
   const routeAuthScreen = authScreenForPath(pathname);
   const activeTab = appTabForPath(pathname);
   const locationSlug = locationSlugForPath(pathname);
   const verificationEmail = verificationEmailState || searchParams.get("email") || "";
   const verificationToken = searchParams.get("token") || "";
 
+  // Public data loads for every screen; member data only loads with a session.
   const dashboardQuery = useQuery({ queryKey: ["dashboard"], queryFn: getDashboard });
   const locationsQuery = useQuery({ queryKey: ["locations"], queryFn: getLocations });
   const plansQuery = useQuery({ queryKey: ["plans"], queryFn: getPlans });
@@ -152,6 +154,7 @@ function WashWorldContent() {
     return true;
   }
 
+  // Keep API writes and their cache updates together in one place.
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: saveSession,
@@ -267,6 +270,7 @@ function WashWorldContent() {
     forgotPasswordMutation.isPending ||
     resetPasswordMutation.isPending;
 
+  // Render one top-level flow for loading, members, or authentication.
   if (!isHydrated || (token && profileQuery.isLoading) || (activeTab && !token)) {
     return (
       <main className="mobile-frame app-loading-screen">
