@@ -73,9 +73,9 @@ describe("WashWorld dashboard", () => {
     cy.intercept("POST", "**/api/login", {
       token: "test-token",
       user: {
-        user_id: "11111111111111111111111111111111",
-        first_name: "Demo",
-        email: "demo@washworld.dk",
+        user_id: "test-user-id",
+        first_name: "Test",
+        email: "test@example.com",
         license_plate: "AB 12345",
         phone: "12345678",
         location_id: 1,
@@ -88,9 +88,9 @@ describe("WashWorld dashboard", () => {
     });
 
     cy.intercept("GET", "**/api/me", {
-      user_id: "11111111111111111111111111111111",
-      first_name: "Demo",
-      email: "demo@washworld.dk",
+      user_id: "test-user-id",
+      first_name: "Test",
+      email: "test@example.com",
       license_plate: "AB 12345",
       phone: "12345678",
       location_id: 1,
@@ -110,10 +110,10 @@ describe("WashWorld dashboard", () => {
     cy.contains("Ren bil. Nemt medlemskab.");
     cy.contains("button", "Log ind").click();
     cy.contains("h1", "Log ind");
-    cy.get('input[type="email"]').type("demo@washworld.dk");
-    cy.get('input[type="password"]').type("kodeord123");
+    cy.get('input[type="email"]').type("test@example.com");
+    cy.get('input[type="password"]').type("testkode123");
     cy.contains("button", "Log ind").click();
-    cy.contains("Hej, Demo");
+    cy.contains("Hej, Test");
     cy.location("pathname").should("eq", "/hjem");
 
     cy.contains("a", "Vaskehaller").click();
@@ -134,7 +134,7 @@ describe("WashWorld dashboard", () => {
     cy.contains("label", "Navn").find("input").type("Valde");
     cy.get('input[type="email"]').eq(0).type("ikke-en-email");
     cy.get('input[type="email"]').eq(1).type("ikke-en-email");
-    cy.contains("label", "Kodeord").find("input").type("kodeord123");
+    cy.contains("label", "Kodeord").find("input").type("testkode123");
     cy.contains("label", "Nummerplade").find("input").type("AB 12345");
     cy.contains("button", "Fortsæt").click();
 
@@ -152,7 +152,7 @@ describe("WashWorld dashboard", () => {
     cy.contains("label", "Navn").find("input").type("Valde");
     cy.get('input[type="email"]').eq(0).type("valde@example.com");
     cy.get('input[type="email"]').eq(1).type("valde@example.com");
-    cy.contains("label", "Kodeord").find("input").type("kodeord123");
+    cy.contains("label", "Kodeord").find("input").type("testkode123");
     cy.contains("label", "Nummerplade").find("input").type("AB 12345");
     cy.contains("button", "Fortsæt").click();
 
@@ -164,8 +164,8 @@ describe("WashWorld dashboard", () => {
 
   it("uses a real endpoint for every bottom-navigation page", () => {
     cy.visit("/login");
-    cy.get('input[type="email"]').type("demo@washworld.dk");
-    cy.get('input[type="password"]').type("kodeord123");
+    cy.get('input[type="email"]').type("test@example.com");
+    cy.get('input[type="password"]').type("testkode123");
     cy.contains("button", "Log ind").click();
     cy.location("pathname").should("eq", "/hjem");
 
@@ -183,11 +183,11 @@ describe("WashWorld dashboard", () => {
 
     cy.contains("a", "Profil").click();
     cy.location("pathname").should("eq", "/profil");
-    cy.contains("h1", "Demo");
+    cy.contains("h1", "Test");
 
     cy.contains("a", "Hjem").click();
     cy.location("pathname").should("eq", "/hjem");
-    cy.contains("Hej, Demo");
+    cy.contains("Hej, Test");
   });
 
   it("redirects a protected endpoint to login without a session", () => {
@@ -202,7 +202,7 @@ describe("WashWorld dashboard", () => {
       body: {
         error: "Bekræft din email, før du logger ind",
         verification_required: true,
-        email: "demo@washworld.dk",
+        email: "test@example.com",
       },
     }).as("pendingLogin");
     cy.intercept("POST", "**/api/resend-verification", {
@@ -211,9 +211,9 @@ describe("WashWorld dashboard", () => {
     cy.intercept("POST", "**/api/verify-email", {
       token: "verified-token",
       user: {
-        user_id: "11111111111111111111111111111111",
-        first_name: "Demo",
-        email: "demo@washworld.dk",
+        user_id: "test-user-id",
+        first_name: "Test",
+        email: "test@example.com",
         license_plate: "AB 12345",
         phone: "12345678",
         location_id: 1,
@@ -229,13 +229,13 @@ describe("WashWorld dashboard", () => {
     cy.contains("button", "Log ind").click();
     cy.location("pathname").should("eq", "/login");
     cy.contains("h1", "Log ind");
-    cy.get('input[type="email"]').type("demo@washworld.dk");
-    cy.get('input[type="password"]').type("kodeord123");
+    cy.get('input[type="email"]').type("test@example.com");
+    cy.get('input[type="password"]').type("testkode123");
     cy.contains("button", "Log ind").click();
     cy.wait("@pendingLogin");
     cy.location("pathname").should("eq", "/bekraeft-email");
     cy.contains("h1", "Bekræft din email");
-    cy.contains("demo@washworld.dk");
+    cy.contains("test@example.com");
     cy.contains("button", "Bekræft email og log ind").should("not.exist");
 
     cy.contains("button", "Send et nyt link").click();
@@ -243,12 +243,12 @@ describe("WashWorld dashboard", () => {
     cy.contains("Et nyt bekræftelseslink er sendt");
 
     const verificationToken = "secure_email_token_12345678901234567890";
-    cy.visit(`/bekraeft-email?email=demo%40washworld.dk&token=${verificationToken}`);
+    cy.visit(`/bekraeft-email?email=test%40example.com&token=${verificationToken}`);
     cy.wait("@verifyEmail").its("request.body").should("deep.equal", {
-      email: "demo@washworld.dk",
+      email: "test@example.com",
       token: verificationToken,
     });
-    cy.contains("Hej, Demo");
+    cy.contains("Hej, Test");
     cy.location("pathname").should("eq", "/hjem");
   });
 

@@ -12,7 +12,7 @@ from validators import (
 
 class ValidatorTests(unittest.TestCase):
     def test_email_is_normalized(self):
-        self.assertEqual(email({"email": " Demo@WashWorld.dk "}), "demo@washworld.dk")
+        self.assertEqual(email({"email": " Test@Example.com "}), "test@example.com")
 
     def test_invalid_email_is_rejected(self):
         with self.assertRaises(ValidationError):
@@ -20,7 +20,7 @@ class ValidatorTests(unittest.TestCase):
 
     def test_email_with_consecutive_dots_is_rejected(self):
         with self.assertRaises(ValidationError):
-            email({"email": "demo..bruger@washworld.dk"})
+            email({"email": "test..bruger@example.com"})
 
     def test_verification_token_accepts_url_safe_value(self):
         token = "A_secure-token_123456789012345678901234"

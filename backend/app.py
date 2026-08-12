@@ -290,39 +290,9 @@ def sync_washworld_locations():
     run_transaction(sync)
 
 
-def ensure_demo_user():
-    if fetch_one("SELECT user_id FROM users WHERE email = %s", ("demo@washworld.dk",)):
-        return
-
-    location = fetch_one("SELECT location_id FROM locations ORDER BY location_id LIMIT 1")
-    plan = fetch_one("SELECT plan_id FROM plans WHERE plan_id = %s", (2,))
-    if not location or not plan:
-        return
-
-    execute(
-        """
-        INSERT INTO users (
-            user_id, first_name, email, password_hash, license_plate, phone, location_id, plan_id
-        )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """,
-        (
-            uuid.uuid4().hex,
-            "Demo",
-            "demo@washworld.dk",
-            generate_password_hash("kodeord123"),
-            "WW 2026",
-            "+45 20 26 20 26",
-            location["location_id"],
-            plan["plan_id"],
-        ),
-    )
-
-
 def prepare_application():
     ensure_runtime_schema()
     sync_washworld_locations()
-    ensure_demo_user()
 
 
 # --- Email and account validation helpers ---

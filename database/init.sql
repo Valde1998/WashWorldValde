@@ -92,28 +92,3 @@ INSERT INTO plans (name, description, monthly_price, single_wash_price) VALUES
 ('Basis', 'Til dig der vasker bilen et par gange om maaneden.', 99.00, 79.00),
 ('Plus', 'Den mest brugte pakke med fri vask i din faste vaskehal.', 149.00, 99.00),
 ('Premium', 'Fri vask i alle vaskehaller og ekstra lakbeskyttelse.', 199.00, 129.00);
-
-INSERT INTO users (
-    user_id,
-    first_name,
-    email,
-    password_hash,
-    license_plate,
-    phone,
-    location_id,
-    plan_id
-) VALUES (
-    '11111111111111111111111111111111',
-    'Demo',
-    'demo@washworld.dk',
-    'pbkdf2:sha256:1000000$cleansalt$205e7ac25787fd22f31f09e5b63c0193d19db153911f9a4e0a755ed3a2ebc025',
-    'AB 12345',
-    '12345678',
-    1,
-    2
-);
-
-INSERT INTO wash_history (wash_id, user_id, location_id, wash_type, washed_at) VALUES
-('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '11111111111111111111111111111111', 1, 'Plus vask', DATE_SUB(NOW(), INTERVAL 5 DAY)),
-('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', '11111111111111111111111111111111', 2, 'Plus vask', DATE_SUB(NOW(), INTERVAL 3 DAY)),
-('cccccccccccccccccccccccccccccccc', '11111111111111111111111111111111', 1, 'Plus vask', DATE_SUB(NOW(), INTERVAL 1 DAY));

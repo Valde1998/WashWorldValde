@@ -322,7 +322,7 @@ export default function AuthFlow({
           <p className="step-label">Trin 3 af 3</p>
           <h1>Opdater dit betalingskort</h1>
           <p className="screen-intro">
-            Kortoplysningerne bruges kun til demo og bliver ikke gemt.
+            Kortoplysningerne bliver ikke gemt.
           </p>
           {formError ? <p className="form-error">{formError}</p> : null}
           <form className="mobile-form" noValidate onSubmit={submitPayment}>
