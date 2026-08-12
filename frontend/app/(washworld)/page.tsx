@@ -1,3 +1,5 @@
+import WashWorldApp from "@/components/WashWorldApp";
+
 export default function WelcomePage() {
-  return null;
+  return <WashWorldApp authScreen="welcome" />;
 }

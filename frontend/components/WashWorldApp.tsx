@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   QueryClient,
   QueryClientProvider,
@@ -32,9 +32,7 @@ import {
 import {
   APP_TAB_ROUTES,
   AUTH_SCREEN_ROUTES,
-  appTabForPath,
-  authScreenForPath,
-  locationSlugForPath,
+  type AppTab,
   type AuthScreen,
 } from "@/lib/routes";
 import type {
@@ -46,9 +44,14 @@ import type {
   UpdateProfilePayload,
 } from "@/types/app";
 
-function WashWorldContent() {
+type WashWorldAppProps = {
+  authScreen?: AuthScreen;
+  activeTab?: AppTab;
+  locationSlug?: string;
+};
+
+function WashWorldContent({ authScreen, activeTab, locationSlug }: WashWorldAppProps) {
   const queryClient = useQueryClient();
-  const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [token, setToken] = useState<string | null>(null);
@@ -57,16 +60,20 @@ function WashWorldContent() {
   const [verificationEmailState, setVerificationEmail] = useState("");
   const automaticVerificationAttempt = useRef("");
 
-  // Resolve the current URL into either an authentication screen or an app tab.
-  const routeAuthScreen = authScreenForPath(pathname);
-  const activeTab = appTabForPath(pathname);
-  const locationSlug = locationSlugForPath(pathname);
   const verificationEmail = verificationEmailState || searchParams.get("email") || "";
   const verificationToken = searchParams.get("token") || "";
+  const pageNotice = searchParams.get("notice") === "expired"
+    ? "Din session er udløbet. Log ind igen."
+    : notice;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setToken(window.localStorage.getItem("washworld_token"));
+      const savedNotice = window.sessionStorage.getItem("washworld_notice");
+      if (savedNotice) {
+        setNotice(savedNotice);
+        window.sessionStorage.removeItem("washworld_notice");
+      }
       setIsHydrated(true);
     }, 0);
 
@@ -81,6 +88,11 @@ function WashWorldContent() {
   function clearToken() {
     window.localStorage.removeItem("washworld_token");
     setToken(null);
+  }
+
+  function rememberNotice(message: string) {
+    window.sessionStorage.setItem("washworld_notice", message);
+    setNotice(message);
   }
 
   // Public data loads for every screen; member data only loads with a session.
@@ -131,7 +143,7 @@ function WashWorldContent() {
 
   function saveSession(session: { token: string }) {
     saveToken(session.token);
-    setNotice("Du er logget ind");
+    rememberNotice("Du er logget ind");
     void queryClient.invalidateQueries({ queryKey: ["me"] });
     void queryClient.invalidateQueries({ queryKey: ["washes"] });
     router.replace(APP_TAB_ROUTES.home);
@@ -140,10 +152,11 @@ function WashWorldContent() {
   function handleProtectedError(error: Error) {
     if (error instanceof ApiError && error.status === 401) {
       clearToken();
+      window.sessionStorage.setItem("washworld_notice", "Din session er udløbet. Log ind igen.");
       queryClient.removeQueries({ queryKey: ["me"] });
       queryClient.removeQueries({ queryKey: ["washes"] });
       setNotice("Din session er udløbet. Log ind igen.");
-      router.replace(AUTH_SCREEN_ROUTES.login);
+      router.replace(`${AUTH_SCREEN_ROUTES.login}?notice=expired`);
       return;
     }
     setNotice(error.message);
@@ -160,7 +173,7 @@ function WashWorldContent() {
     }
 
     setVerificationEmail(data.email);
-    setNotice(error.message);
+    rememberNotice(error.message);
     router.push(`${AUTH_SCREEN_ROUTES.verify}?email=${encodeURIComponent(data.email)}`);
     return true;
   }
@@ -177,7 +190,8 @@ function WashWorldContent() {
     mutationFn: signup,
     onSuccess: (response) => {
       setVerificationEmail(response.email);
-      setNotice(response.message);
+      window.sessionStorage.removeItem("washworld_signup");
+      rememberNotice(response.message);
       router.push(`${AUTH_SCREEN_ROUTES.verify}?email=${encodeURIComponent(response.email)}`);
     },
     onError: (error) => {
@@ -194,7 +208,7 @@ function WashWorldContent() {
   });
   const verifyEmailNow = verifyEmailMutation.mutate;
   useEffect(() => {
-    if (!isHydrated || routeAuthScreen !== "verify" || !verificationEmail || !verificationToken) return;
+    if (!isHydrated || authScreen !== "verify" || !verificationEmail || !verificationToken) return;
 
     const attempt = `${verificationEmail}:${verificationToken}`;
     if (automaticVerificationAttempt.current === attempt) return;
@@ -202,7 +216,7 @@ function WashWorldContent() {
     automaticVerificationAttempt.current = attempt;
     setNotice("Bekræfter din email...");
     verifyEmailNow();
-  }, [isHydrated, routeAuthScreen, verificationEmail, verificationToken, verifyEmailNow]);
+  }, [authScreen, isHydrated, verificationEmail, verificationToken, verifyEmailNow]);
   const resendVerificationMutation = useMutation({
     mutationFn: () => resendVerification(verificationEmail),
     onSuccess: (response) => setNotice(response.message),
@@ -211,7 +225,7 @@ function WashWorldContent() {
   const forgotPasswordMutation = useMutation({
     mutationFn: forgotPassword,
     onSuccess: (response) => {
-      setNotice(response.message);
+      rememberNotice(response.message);
       router.push(AUTH_SCREEN_ROUTES.sent);
     },
     onError: (error) => setNotice(error.message),
@@ -219,7 +233,7 @@ function WashWorldContent() {
   const resetPasswordMutation = useMutation({
     mutationFn: resetPassword,
     onSuccess: (response) => {
-      setNotice(response.message);
+      rememberNotice(response.message);
       router.replace(AUTH_SCREEN_ROUTES.login);
     },
     onError: (error) => setNotice(error.message),
@@ -307,7 +321,7 @@ function WashWorldContent() {
     <AuthFlow
       isLoading={authLoading}
       locations={locations}
-      notice={notice}
+      notice={pageNotice}
       verificationEmail={verificationEmail}
       verificationToken={verificationToken}
       onForgotPassword={(payload: ForgotPasswordPayload) => forgotPasswordMutation.mutate(payload)}
@@ -321,12 +335,12 @@ function WashWorldContent() {
       }
       onVerifyEmail={() => verifyEmailMutation.mutate()}
       plans={plans}
-      screen={routeAuthScreen ?? "welcome"}
+      screen={authScreen ?? "welcome"}
     />
   );
 }
 
-export default function WashWorldApp() {
+export default function WashWorldApp(props: WashWorldAppProps) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -341,7 +355,7 @@ export default function WashWorldApp() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <WashWorldContent />
+      <WashWorldContent {...props} />
     </QueryClientProvider>
   );
 }

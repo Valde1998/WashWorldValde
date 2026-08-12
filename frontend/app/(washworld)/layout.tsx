@@ -1,7 +1,5 @@
 import { Suspense, type ReactNode } from "react";
 
-import WashWorldApp from "@/components/WashWorldApp";
-
 function RouteLoading() {
   return (
     <main className="mobile-frame app-loading-screen">
@@ -12,12 +10,5 @@ function RouteLoading() {
 }
 
 export default function WashWorldRouteLayout({ children }: { children: ReactNode }) {
-  return (
-    <>
-      <Suspense fallback={<RouteLoading />}>
-        <WashWorldApp />
-      </Suspense>
-      {children}
-    </>
-  );
+  return <Suspense fallback={<RouteLoading />}>{children}</Suspense>;
 }

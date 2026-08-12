@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import type {
   ForgotPasswordPayload,
@@ -39,6 +39,17 @@ type SignupDraft = SignupPayload & { confirm_email: string };
 type PaymentForm = { card: string; expiry: string; cvc: string };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,63}$/;
+const SIGNUP_STORAGE_KEY = "washworld_signup";
+const EMPTY_SIGNUP_FORM: SignupDraft = {
+  first_name: "",
+  email: "",
+  confirm_email: "",
+  password: "",
+  license_plate: "",
+  phone: "",
+  location_id: 0,
+  plan_id: 0,
+};
 
 function isValidEmail(value: string) {
   const normalized = value.trim();
@@ -80,26 +91,36 @@ export default function AuthFlow({
     email: "",
     password: "",
   });
-  const [signupForm, setSignupForm] = useState<SignupDraft>({
-    first_name: "",
-    email: "",
-    confirm_email: "",
-    password: "",
-    license_plate: "",
-    phone: "",
-    location_id: 0,
-    plan_id: 0,
-  });
+  const [signupForm, setSignupForm] = useState<SignupDraft>(EMPTY_SIGNUP_FORM);
   const [forgotEmail, setForgotEmail] = useState("");
   const [resetForm, setResetForm] = useState<ResetPasswordPayload>({ reset_key: "", password: "" });
   const [paymentForm, setPaymentForm] = useState<PaymentForm>({ card: "", expiry: "", cvc: "" });
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const savedSignup = window.sessionStorage.getItem(SIGNUP_STORAGE_KEY);
+      if (!savedSignup) return;
+
+      try {
+        setSignupForm({ ...EMPTY_SIGNUP_FORM, ...JSON.parse(savedSignup) });
+      } catch {
+        window.sessionStorage.removeItem(SIGNUP_STORAGE_KEY);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   function updateLogin(changes: Partial<LoginPayload>) {
     setLoginForm((current) => ({ ...current, ...changes }));
   }
 
   function updateSignup(changes: Partial<SignupDraft>) {
-    setSignupForm((current) => ({ ...current, ...changes }));
+    setSignupForm((current) => {
+      const updatedForm = { ...current, ...changes };
+      window.sessionStorage.setItem(SIGNUP_STORAGE_KEY, JSON.stringify(updatedForm));
+      return updatedForm;
+    });
   }
 
   function updatePayment(changes: Partial<PaymentForm>) {
@@ -176,6 +197,7 @@ export default function AuthFlow({
     }
 
     setSignupForm(normalizedForm);
+    window.sessionStorage.setItem(SIGNUP_STORAGE_KEY, JSON.stringify(normalizedForm));
     goTo("plans");
   }
 

@@ -162,6 +162,28 @@ describe("WashWorld dashboard", () => {
     cy.contains("h1", "Dine oplysninger");
   });
 
+  it("keeps signup details when moving between page files", () => {
+    cy.intercept("POST", "**/api/sign-up/validate", {
+      message: "Oplysningerne er godkendt",
+    }).as("validateSignup");
+
+    cy.visit("/opret-bruger");
+    cy.contains("label", "Navn").find("input").type("Valde");
+    cy.get('input[type="email"]').eq(0).type("valde@example.com");
+    cy.get('input[type="email"]').eq(1).type("valde@example.com");
+    cy.contains("label", "Kodeord").find("input").type("testkode123");
+    cy.contains("label", "Nummerplade").find("input").type("AB 12345");
+    cy.contains("button", "Fortsæt").click();
+
+    cy.wait("@validateSignup");
+    cy.location("pathname").should("eq", "/medlemskab");
+
+    cy.visit("/opret-bruger");
+    cy.contains("label", "Navn").find("input").should("have.value", "Valde");
+    cy.get('input[type="email"]').eq(0).should("have.value", "valde@example.com");
+    cy.contains("label", "Nummerplade").find("input").should("have.value", "AB 12345");
+  });
+
   it("uses a real endpoint for every bottom-navigation page", () => {
     cy.visit("/login");
     cy.get('input[type="email"]').type("test@example.com");
