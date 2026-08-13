@@ -157,32 +157,6 @@ def ensure_runtime_schema():
     for statement in table_statements:
         execute(statement)
 
-    location_columns = {
-        "slug": "slug VARCHAR(180)",
-        "postal_code": "postal_code VARCHAR(10)",
-        "latitude": "latitude DECIMAL(11, 8)",
-        "longitude": "longitude DECIMAL(11, 8)",
-        "location_type": "location_type VARCHAR(20) NOT NULL DEFAULT 'washhall'",
-        "halls_count": "halls_count INT NOT NULL DEFAULT 1",
-        "self_wash_count": "self_wash_count INT NOT NULL DEFAULT 0",
-        "source_url": "source_url VARCHAR(255)",
-        "source_checked_on": "source_checked_on DATE",
-    }
-    existing_columns = {
-        row["COLUMN_NAME"]
-        for row in fetch_all(
-            """
-            SELECT COLUMN_NAME
-            FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'locations'
-            """,
-            (Config.DB_NAME,),
-        )
-    }
-    for name, definition in location_columns.items():
-        if name not in existing_columns:
-            execute(f"ALTER TABLE locations ADD COLUMN {definition}")
-
     plans = (
         (1, "Basis", "Til dig der vasker bilen et par gange om maaneden.", 99.00, 79.00),
         (2, "Plus", "Den mest brugte pakke med fri vask i din faste vaskehal.", 149.00, 99.00),
