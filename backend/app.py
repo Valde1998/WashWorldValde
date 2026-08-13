@@ -603,64 +603,41 @@ def verify_email():
     data = request.get_json(silent=True) or {}
     user_email = email(data)
     token = verification_token(data)
+
     verification = fetch_one(
         """
         SELECT
             email_verification_tokens.verification_id,
             email_verification_tokens.user_id,
             email_verification_tokens.token_hash,
-            email_verification_tokens.expires_at,
-            email_verification_tokens.verified_at,
-            users.first_name,
-            users.email
+            email_verification_tokens.verified_at
         FROM email_verification_tokens
         JOIN users ON users.user_id = email_verification_tokens.user_id
         WHERE users.email = %s
+          AND email_verification_tokens.expires_at > NOW()
         LIMIT 1
         """,
         (user_email,),
     )
 
-    if not verification or verification["verified_at"]:
-        return jsonify({"error": "Bekræftelseslinket er ugyldigt eller allerede brugt"}), 400
+    if not verification:
+        return jsonify({"error": "Bekræftelseslinket er ugyldigt eller udløbet"}), 400
 
-    active_verification = fetch_one(
-        """
-        SELECT verification_id
-        FROM email_verification_tokens
-        WHERE verification_id = %s
-          AND expires_at > NOW()
-        """,
-        (verification["verification_id"],),
-    )
-    if not active_verification:
-        return jsonify({"error": "Bekræftelseslinket er udløbet. Send et nyt link."}), 400
+    if verification["verified_at"]:
+        return jsonify({"error": "Emailen er allerede bekræftet"}), 400
 
     if not check_password_hash(verification["token_hash"], token):
         return jsonify({"error": "Bekræftelseslinket er ugyldigt"}), 400
 
-    welcome_subject = "Velkommen til WashWorld"
-    welcome_body = (
-        f"Hej {verification['first_name']}. Din email er bekræftet, "
-        "og dit WashWorld-medlemskab er nu aktivt."
+    execute(
+        """
+        UPDATE email_verification_tokens
+        SET verified_at = NOW()
+        WHERE verification_id = %s
+        """,
+        (verification["verification_id"],),
     )
 
-    def mark_verified(cursor):
-        cursor.execute(
-            """
-            UPDATE email_verification_tokens
-            SET verified_at = NOW()
-            WHERE verification_id = %s
-              AND verified_at IS NULL
-              AND expires_at > NOW()
-            """,
-            (verification["verification_id"],),
-        )
-        if cursor.rowcount != 1:
-            raise ValidationError("Bekræftelseslinket er ugyldigt eller udløbet")
-
-    run_transaction(mark_verified)
-    deliver_email(verification["email"], welcome_subject, welcome_body)
     return create_session_response(verification["user_id"])
 
 
