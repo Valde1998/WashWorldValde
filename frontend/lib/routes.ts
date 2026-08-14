@@ -30,3 +30,14 @@ export const APP_TAB_ROUTES: Record<AppTab, string> = {
   locations: "/vaskehaller",
   profile: "/profil",
 };
+
+export function isMemberRoutePath(pathname: string) {
+  return (
+    pathname === APP_TAB_ROUTES.home ||
+    pathname === APP_TAB_ROUTES.activity ||
+    pathname === APP_TAB_ROUTES.qr ||
+    pathname === APP_TAB_ROUTES.locations ||
+    pathname.startsWith(`${APP_TAB_ROUTES.locations}/`) ||
+    pathname === APP_TAB_ROUTES.profile
+  );
+}
