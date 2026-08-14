@@ -2,21 +2,15 @@
 
 import type { SyntheticEvent } from "react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
-import { ApiError, signup } from "@/lib/api";
-import { saveStoredNotice } from "@/lib/browserStorage";
-import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
-import { usePlans } from "@/hooks/usePlans";
-import { useSignupDraft } from "@/hooks/useSignupDraft";
+import { useWashWorld } from "@/hooks/useWashWorld";
 
 export default function PaymentPage() {
-  const router = useRouter();
-  const { clearSignup, isHydrated, signupForm } = useSignupDraft();
-  const { plans } = usePlans();
+  const { authLoading, createAccount, goTo, isHydrated, notice, plans, signupForm } = useWashWorld({
+    loadPlans: true,
+  });
   const [formError, setFormError] = useState("");
-  const [authLoading, setAuthLoading] = useState(false);
   const [card, setCard] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvc, setCvc] = useState("");
@@ -38,42 +32,26 @@ export default function PaymentPage() {
       setFormError("CVC skal bestå af 3 cifre.");
       return;
     }
-    const { confirm_email: _confirmEmail, ...payload } = signupForm;
-
-    setAuthLoading(true);
-    try {
-      const response = await signup(payload);
-      clearSignup();
-      saveStoredNotice(response.message);
-      router.push(`${AUTH_SCREEN_ROUTES.verify}?email=${encodeURIComponent(response.email)}`);
-    } catch (error) {
-      if (
-        error instanceof ApiError &&
-        typeof error.data === "object" &&
-        error.data !== null &&
-        "verification_required" in error.data &&
-        "email" in error.data &&
-        error.data.verification_required === true &&
-        typeof error.data.email === "string"
-      ) {
-        saveStoredNotice(error.message);
-        router.push(`${AUTH_SCREEN_ROUTES.verify}?email=${encodeURIComponent(error.data.email)}`);
-      } else {
-        setFormError(error instanceof Error ? error.message : "Kontoen kunne ikke oprettes.");
-      }
-    } finally {
-      setAuthLoading(false);
-    }
+    await createAccount({
+      email: signupForm.email,
+      first_name: signupForm.first_name,
+      license_plate: signupForm.license_plate,
+      location_id: signupForm.location_id,
+      password: signupForm.password,
+      phone: signupForm.phone,
+      plan_id: signupForm.plan_id,
+    });
   }
 
   return (
     <main className="mobile-frame auth-screen">
-      <AuthHeader back={() => router.push(AUTH_SCREEN_ROUTES.plans)} />
+      <AuthHeader back={() => goTo("plans")} />
       <section className="auth-content">
         <p className="step-label">Trin 3 af 3</p>
         <h1>Opdater dit betalingskort</h1>
         <p className="screen-intro">Kortoplysningerne bliver ikke gemt.</p>
         {formError ? <p className="form-error">{formError}</p> : null}
+        {notice !== "Klar" ? <p className="status-message">{notice}</p> : null}
         <form className="mobile-form" noValidate onSubmit={submit}>
           <label>
             Kortnummer

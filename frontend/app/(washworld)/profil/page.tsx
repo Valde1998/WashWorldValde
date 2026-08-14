@@ -4,9 +4,7 @@ import type { SyntheticEvent } from "react";
 import { useEffect, useState } from "react";
 
 import { MemberPage } from "@/components/PageLayout";
-import { useAuth } from "@/hooks/useAuth";
-import { useLocations } from "@/hooks/useLocations";
-import { usePlans } from "@/hooks/usePlans";
+import { useWashWorld } from "@/hooks/useWashWorld";
 import type { UpdateProfilePayload } from "@/types/app";
 
 const emptyProfile: UpdateProfilePayload = {
@@ -18,9 +16,18 @@ const emptyProfile: UpdateProfilePayload = {
 };
 
 export default function ProfilePage() {
-  const { isSaving, logout, memberLoading, notice, saveProfile, user } = useAuth({ requireLogin: true });
-  const { isLoading: locationsLoading, locations } = useLocations();
-  const { isLoading: plansLoading, plans } = usePlans();
+  const {
+    isSaving,
+    locations,
+    locationsLoading,
+    logout,
+    memberLoading,
+    notice,
+    plans,
+    plansLoading,
+    saveProfile,
+    user,
+  } = useWashWorld({ loadLocations: true, loadPlans: true, requireLogin: true });
   const [form, setForm] = useState<UpdateProfilePayload>(emptyProfile);
 
   useEffect(() => {

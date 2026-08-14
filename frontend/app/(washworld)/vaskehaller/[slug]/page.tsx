@@ -5,25 +5,24 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 
 import { MemberPage } from "@/components/PageLayout";
-import { useAuth } from "@/hooks/useAuth";
-import { useLocations } from "@/hooks/useLocations";
-import { useWashes } from "@/hooks/useWashes";
+import { useWashWorld } from "@/hooks/useWashWorld";
 import { APP_TAB_ROUTES } from "@/lib/routes";
 
 export default function LocationPage() {
   const { slug } = useParams<{ slug: string }>();
-  const { memberLoading, notice, token, user } = useAuth({ requireLogin: true });
-  const { isLoading, locations } = useLocations();
   const {
     isCreatingWash,
-    notice: washNotice,
+    locations,
+    locationsLoading,
+    memberLoading,
+    notice,
     registerWash,
-  } = useWashes(token);
+    user,
+  } = useWashWorld({ loadLocations: true, requireLogin: true });
   const location = locations.find((item) => item.slug === slug);
-  const pageNotice = washNotice !== "Klar" ? washNotice : notice;
 
   return (
-    <MemberPage loading={memberLoading || isLoading} notice={pageNotice} title="Vaskehal">
+    <MemberPage loading={memberLoading || locationsLoading} notice={notice} title="Vaskehal">
       {location ? (
         <section className="location-detail-screen">
           <div className="location-hero">

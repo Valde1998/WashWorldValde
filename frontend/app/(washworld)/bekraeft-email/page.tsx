@@ -1,7 +1,7 @@
 "use client";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
-import { useEmailVerification } from "@/hooks/useEmailVerification";
+import { useWashWorld } from "@/hooks/useWashWorld";
 
 export default function VerifyEmailPage() {
   const {
@@ -13,7 +13,7 @@ export default function VerifyEmailPage() {
     verificationEmail,
     verificationToken,
     verifyUserEmail,
-  } = useEmailVerification();
+  } = useWashWorld({ autoVerifyEmail: true });
 
   if (!isHydrated) return <LoadingPage text="Åbner emailbekræftelse..." />;
 

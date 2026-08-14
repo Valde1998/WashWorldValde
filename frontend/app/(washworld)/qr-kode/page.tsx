@@ -3,10 +3,10 @@
 import Image from "next/image";
 
 import { MemberPage } from "@/components/PageLayout";
-import { useAuth } from "@/hooks/useAuth";
+import { useWashWorld } from "@/hooks/useWashWorld";
 
 export default function QrCodePage() {
-  const { memberLoading, notice, user } = useAuth({ requireLogin: true });
+  const { memberLoading, notice, user } = useWashWorld({ requireLogin: true });
 
   return (
     <MemberPage loading={memberLoading} notice={notice} title="QR kode">

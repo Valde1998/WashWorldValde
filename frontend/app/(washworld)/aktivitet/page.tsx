@@ -3,10 +3,7 @@
 import { useState } from "react";
 
 import { MemberPage } from "@/components/PageLayout";
-import { useAuth } from "@/hooks/useAuth";
-import { useDashboard } from "@/hooks/useDashboard";
-import { useLocations } from "@/hooks/useLocations";
-import { useWashes } from "@/hooks/useWashes";
+import { useWashWorld } from "@/hooks/useWashWorld";
 import type { Dashboard } from "@/types/app";
 
 function formatWashDate(value: string) {
@@ -48,10 +45,12 @@ function ActivityChart({ data }: { data: Dashboard["washes_per_day"] }) {
 }
 
 export default function ActivityPage() {
-  const { memberLoading, notice, token } = useAuth({ requireLogin: true });
-  const { dashboard } = useDashboard();
-  const { locations } = useLocations();
-  const { washes, washesError, washesLoading } = useWashes(token);
+  const { dashboard, locations, memberLoading, notice, washes, washesError, washesLoading } = useWashWorld({
+    loadDashboard: true,
+    loadLocations: true,
+    loadWashes: true,
+    requireLogin: true,
+  });
   const [showAllWashes, setShowAllWashes] = useState(false);
   const recentWashes = showAllWashes ? washes : washes.slice(0, 4);
 

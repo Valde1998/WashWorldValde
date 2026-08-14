@@ -1,10 +1,10 @@
 "use client";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
-import { usePageNotice } from "@/hooks/usePageNotice";
+import { useWashWorld } from "@/hooks/useWashWorld";
 
 export default function EmailSentPage() {
-  const { goTo, isHydrated, notice } = usePageNotice();
+  const { goTo, isHydrated, notice } = useWashWorld();
 
   if (!isHydrated) return <LoadingPage text="Åbner siden..." />;
 

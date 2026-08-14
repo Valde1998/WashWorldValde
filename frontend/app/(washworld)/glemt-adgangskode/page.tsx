@@ -4,11 +4,11 @@ import type { SyntheticEvent } from "react";
 import { useState } from "react";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
-import { usePasswordReset } from "@/hooks/usePasswordReset";
+import { useWashWorld } from "@/hooks/useWashWorld";
 import { isValidEmail } from "@/lib/formValidation";
 
 export default function ForgotPasswordPage() {
-  const { authLoading, goTo, isHydrated, notice, requestPasswordReset } = usePasswordReset();
+  const { authLoading, goTo, isHydrated, notice, requestPasswordReset } = useWashWorld();
   const [email, setEmail] = useState("");
   const [formError, setFormError] = useState("");
 

@@ -2,23 +2,23 @@
 
 import type { SyntheticEvent } from "react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
-import { useLocations } from "@/hooks/useLocations";
-import { usePlans } from "@/hooks/usePlans";
-import { useSignupDraft } from "@/hooks/useSignupDraft";
-import { validateSignup } from "@/lib/api";
+import { useWashWorld } from "@/hooks/useWashWorld";
 import { isValidEmail } from "@/lib/formValidation";
-import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
 
 export default function SignupPage() {
-  const router = useRouter();
-  const { isHydrated, signupForm, updateSignup } = useSignupDraft();
-  const { locations } = useLocations();
-  const { plans } = usePlans();
+  const {
+    authLoading,
+    goTo,
+    isHydrated,
+    locations,
+    plans,
+    signupForm,
+    updateSignup,
+    validateSignupDetails,
+  } = useWashWorld({ loadLocations: true, loadPlans: true });
   const [formError, setFormError] = useState("");
-  const [isChecking, setIsChecking] = useState(false);
 
   if (!isHydrated) return <LoadingPage text="Henter oprettelse..." />;
 
@@ -60,24 +60,28 @@ export default function SignupPage() {
       location_id: signupForm.location_id || locations[0].location_id,
       plan_id: signupForm.plan_id || plans[0].plan_id,
     };
-    const { confirm_email: _confirmEmail, plan_id: _planId, ...details } = normalized;
+    const details = {
+      email: normalized.email,
+      first_name: normalized.first_name,
+      license_plate: normalized.license_plate,
+      location_id: normalized.location_id,
+      password: normalized.password,
+      phone: normalized.phone,
+    };
 
     try {
-      setIsChecking(true);
-      await validateSignup(details);
+      await validateSignupDetails(details);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Oplysningerne kunne ikke godkendes.");
       return;
-    } finally {
-      setIsChecking(false);
     }
     updateSignup(normalized);
-    router.push(AUTH_SCREEN_ROUTES.plans);
+    goTo("plans");
   }
 
   return (
     <main className="mobile-frame auth-screen">
-      <AuthHeader back={() => router.push(AUTH_SCREEN_ROUTES.welcome)} />
+      <AuthHeader back={() => goTo("welcome")} />
       <section className="auth-content">
         <p className="step-label">Trin 1 af 3</p>
         <h1>Dine oplysninger</h1>
@@ -155,10 +159,10 @@ export default function SignupPage() {
           </label>
           <button
             className="primary-button"
-            disabled={isChecking || !locations.length || !plans.length}
+            disabled={authLoading || !locations.length || !plans.length}
             type="submit"
           >
-            {isChecking ? "Kontrollerer..." : "Fortsæt"}
+            {authLoading ? "Kontrollerer..." : "Fortsæt"}
           </button>
         </form>
       </section>

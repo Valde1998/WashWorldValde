@@ -4,14 +4,15 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { MemberPage } from "@/components/PageLayout";
-import { useAuth } from "@/hooks/useAuth";
-import { useLocations } from "@/hooks/useLocations";
+import { useWashWorld } from "@/hooks/useWashWorld";
 import { APP_TAB_ROUTES } from "@/lib/routes";
 import type { Location } from "@/types/app";
 
 export default function HomePage() {
-  const { memberLoading, notice, user } = useAuth({ requireLogin: true });
-  const { isLoading: locationsLoading, locations } = useLocations();
+  const { locations, locationsLoading, memberLoading, notice, user } = useWashWorld({
+    loadLocations: true,
+    requireLogin: true,
+  });
   if (!user) return <MemberPage loading={memberLoading || locationsLoading} notice={notice} title="Hjem" />;
 
   const preferredLocation = locations.find((location) => location.location_id === user.location_id);

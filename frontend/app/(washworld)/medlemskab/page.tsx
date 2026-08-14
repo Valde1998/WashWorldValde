@@ -1,22 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
-import { usePlans } from "@/hooks/usePlans";
-import { useSignupDraft } from "@/hooks/useSignupDraft";
-import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
+import { useWashWorld } from "@/hooks/useWashWorld";
 
 export default function MembershipPage() {
-  const router = useRouter();
-  const { isHydrated, signupForm, updateSignup } = useSignupDraft();
-  const { isLoading, plans } = usePlans();
+  const { goTo, isHydrated, plans, plansLoading, signupForm, updateSignup } = useWashWorld({ loadPlans: true });
 
-  if (!isHydrated || isLoading) return <LoadingPage text="Henter medlemskaber..." />;
+  if (!isHydrated || plansLoading) return <LoadingPage text="Henter medlemskaber..." />;
 
   return (
     <main className="mobile-frame auth-screen">
-      <AuthHeader back={() => router.push(AUTH_SCREEN_ROUTES.signup)} />
+      <AuthHeader back={() => goTo("signup")} />
       <section className="auth-content wide-auth-content">
         <p className="step-label">Trin 2 af 3</p>
         <h1>Vask som passer til dig</h1>
@@ -47,7 +41,7 @@ export default function MembershipPage() {
           className="primary-button sticky-action"
           disabled={!signupForm.plan_id}
           type="button"
-          onClick={() => router.push(AUTH_SCREEN_ROUTES.payment)}
+          onClick={() => goTo("payment")}
         >
           Fortsæt til betaling
         </button>
