@@ -355,6 +355,7 @@ def health_check():
 
 @app.get("/api/locations")
 def locations():
+    # Frontend bruger dette endpoint til at vise vaskehaller.
     rows = fetch_all(
         """
         SELECT
@@ -564,6 +565,7 @@ def sign_up():
 
 @app.post("/api/login")
 def login():
+    # Frontend sender email og password hertil.
     data = request.get_json(silent=True) or {}
 
     user_email = email(data)
@@ -595,6 +597,7 @@ def login():
             }
         ), 403
 
+    # Hvis login er korrekt, får frontend brugerdata og et login-token tilbage.
     return create_session_response(user["user_id"])
 
 
@@ -790,6 +793,7 @@ def reset_password():
 @app.get("/api/me")
 @jwt_required()
 def me():
+    # Frontend sender token med. Backend bruger token til at finde den aktuelle bruger.
     profile = get_profile(get_jwt_identity())
 
     if not profile:

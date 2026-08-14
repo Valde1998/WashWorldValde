@@ -6,10 +6,10 @@ import { MemberPage } from "@/components/PageLayout";
 import { useWashWorld } from "@/hooks/useWashWorld";
 
 export default function QrCodePage() {
-  const { memberLoading, notice, user } = useWashWorld({ requireLogin: true });
+  const { notice, pageLoading, user } = useWashWorld({ requireLogin: true });
 
   return (
-    <MemberPage loading={memberLoading} notice={notice} title="QR kode">
+    <MemberPage loading={pageLoading} notice={notice} title="QR kode">
       {user ? (
         <section className="app-screen qr-screen">
           <div className="screen-title"><p>Adgang</p><h1>Scan QR-koden</h1></div>

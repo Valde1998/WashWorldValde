@@ -12,15 +12,15 @@ export default function LocationPage() {
   const { slug } = useParams<{ slug: string }>();
   const {
     locations,
-    memberLoading,
     notice,
+    pageLoading,
     registerWash,
     user,
   } = useWashWorld({ loadLocations: true, requireLogin: true });
   const location = locations.find((item) => item.slug === slug);
 
   return (
-    <MemberPage loading={memberLoading} notice={notice} title="Vaskehal">
+    <MemberPage loading={pageLoading} notice={notice} title="Vaskehal">
       {location ? (
         <section className="location-detail-screen">
           <div className="location-hero">

@@ -50,29 +50,18 @@ async function request<T>(path: string, options: RequestOptions = {}) {
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
 
+  // Hvis brugeren er logget ind, sender vi token med til backend.
   if (options.token) {
     headers.set("Authorization", `Bearer ${options.token}`);
   }
 
+  // Her sendes requesten fra frontend til Flask-backend.
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers,
   });
 
-  const text = await response.text();
-  let data: unknown = null;
-
-  if (text) {
-    try {
-      data = JSON.parse(text);
-    } catch {
-      if (!response.ok) {
-        throw new ApiError("Serveren returnerede et ugyldigt svar", response.status);
-      }
-
-      throw new ApiError("Serverens svar kunne ikke læses", response.status);
-    }
-  }
+  const data = await response.json().catch(() => null);
 
   if (!response.ok) {
     throw new ApiError(responseErrorMessage(data), response.status, data);

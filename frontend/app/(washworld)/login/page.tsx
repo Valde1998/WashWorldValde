@@ -9,11 +9,11 @@ import { isValidEmail } from "@/lib/formValidation";
 import type { LoginPayload } from "@/types/app";
 
 export default function LoginPage() {
-  const { goTo, isHydrated, loginUser, notice } = useWashWorld({ redirectIfLoggedIn: true });
+  const { browserReady, goTo, loginUser, notice } = useWashWorld({ redirectIfLoggedIn: true });
   const [formError, setFormError] = useState("");
   const [form, setForm] = useState<LoginPayload>({ email: "", password: "" });
 
-  if (!isHydrated) return <LoadingPage text="Åbner login..." />;
+  if (!browserReady) return <LoadingPage text="Åbner login..." />;
 
   function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();

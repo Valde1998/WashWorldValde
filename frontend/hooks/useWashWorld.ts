@@ -79,12 +79,18 @@ function readSignupDraft() {
   }
 }
 
+function afterRender(action: () => void) {
+  const timer = window.setTimeout(action, 0);
+  return () => window.clearTimeout(timer);
+}
+
 export function useWashWorld(options: UseWashWorldOptions = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const automaticVerificationAttempt = useRef("");
 
+  // Siden bestemmer selv, hvad den har brug for.
   const autoVerifyEmail = options.autoVerifyEmail ?? false;
   const loadDashboardOnStart = options.loadDashboard ?? false;
   const loadLocationsOnStart = options.loadLocations ?? false;
@@ -93,7 +99,8 @@ export function useWashWorld(options: UseWashWorldOptions = {}) {
   const redirectIfLoggedIn = options.redirectIfLoggedIn ?? false;
   const requireLogin = options.requireLogin ?? false;
 
-  const [isHydrated, setIsHydrated] = useState(false);
+  // Data som appen husker imens brugeren bruger siden.
+  const [browserReady, setBrowserReady] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User>();
   const [notice, setNotice] = useState("Klar");
@@ -196,8 +203,9 @@ export function useWashWorld(options: UseWashWorldOptions = {}) {
     }
   }, [token]);
 
+  // 1. Når appen åbner: læs token og gemte beskeder fra browseren.
   useEffect(() => {
-    const timer = window.setTimeout(() => {
+    return afterRender(() => {
       setToken(window.localStorage.getItem(TOKEN_KEY));
 
       const savedNotice = window.sessionStorage.getItem(NOTICE_KEY);
@@ -207,16 +215,15 @@ export function useWashWorld(options: UseWashWorldOptions = {}) {
       }
 
       setSignupForm(readSignupDraft());
-      setIsHydrated(true);
-    }, 0);
-
-    return () => window.clearTimeout(timer);
+      setBrowserReady(true);
+    });
   }, []);
 
+  // 2. Når browseren er klar: tjek om brugeren må se siden.
   useEffect(() => {
-    if (!isHydrated) return;
+    if (!browserReady) return;
 
-    const timer = window.setTimeout(() => {
+    return afterRender(() => {
       if (!token) {
         setUser(undefined);
         if (requireLogin) router.replace(AUTH_SCREEN_ROUTES.login);
@@ -224,34 +231,27 @@ export function useWashWorld(options: UseWashWorldOptions = {}) {
       }
 
       void loadUser(token);
-    }, 0);
+    });
+  }, [browserReady, loadUser, requireLogin, router, token]);
 
-    return () => window.clearTimeout(timer);
-  }, [isHydrated, loadUser, requireLogin, router, token]);
-
+  // 3. Hvis brugeren allerede er logget ind, så send væk fra login/opret-sider.
   useEffect(() => {
-    if (!isHydrated || !redirectIfLoggedIn || !token || !user) return;
+    if (!browserReady || !redirectIfLoggedIn || !token || !user) return;
+    router.replace(APP_TAB_ROUTES.home);
+  }, [browserReady, redirectIfLoggedIn, router, token, user]);
 
-    const timer = window.setTimeout(() => {
-      router.replace(APP_TAB_ROUTES.home);
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, [isHydrated, redirectIfLoggedIn, router, token, user]);
-
+  // 4. Hent de data som den aktuelle side har bedt om.
   useEffect(() => {
-    if (!isHydrated) return;
+    if (!browserReady) return;
 
-    const timer = window.setTimeout(() => {
+    return afterRender(() => {
       if (loadDashboardOnStart) void loadDashboard();
       if (loadLocationsOnStart) void loadLocations();
       if (loadPlansOnStart) void loadPlans();
       if (loadWashesOnStart) void loadWashes();
-    }, 0);
-
-    return () => window.clearTimeout(timer);
+    });
   }, [
-    isHydrated,
+    browserReady,
     loadDashboard,
     loadDashboardOnStart,
     loadLocations,
@@ -262,6 +262,7 @@ export function useWashWorld(options: UseWashWorldOptions = {}) {
     loadWashesOnStart,
   ]);
 
+  // Funktioner herunder bliver kaldt direkte fra siderne.
   function updateSignup(changes: Partial<SignupDraft>) {
     setSignupForm((current) => {
       const updated = { ...current, ...changes };
@@ -307,20 +308,15 @@ export function useWashWorld(options: UseWashWorldOptions = {}) {
   }, [saveSession, verificationEmail, verificationToken]);
 
   useEffect(() => {
-    if (!isHydrated || !autoVerifyEmail || pathname !== AUTH_SCREEN_ROUTES.verify) return;
+    if (!browserReady || !autoVerifyEmail || pathname !== AUTH_SCREEN_ROUTES.verify) return;
     if (!verificationEmail || !verificationToken) return;
 
     const attempt = `${verificationEmail}:${verificationToken}`;
     if (automaticVerificationAttempt.current === attempt) return;
 
     automaticVerificationAttempt.current = attempt;
-
-    const timer = window.setTimeout(() => {
-      void verifyUserEmail();
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, [autoVerifyEmail, isHydrated, pathname, verificationEmail, verificationToken, verifyUserEmail]);
+    void verifyUserEmail();
+  }, [autoVerifyEmail, browserReady, pathname, verificationEmail, verificationToken, verifyUserEmail]);
 
   async function resendUserVerification() {
     if (!verificationEmail) {
@@ -390,12 +386,12 @@ export function useWashWorld(options: UseWashWorldOptions = {}) {
     createAccount,
     dashboard,
     goTo,
-    isHydrated,
+    browserReady,
     locations,
     loginUser,
     logout,
-    memberLoading: !isHydrated || (requireLogin && (!token || !user)),
     notice: pageNotice,
+    pageLoading: !browserReady || (requireLogin && (!token || !user)),
     plans,
     registerWash,
     requestPasswordReset,

@@ -7,7 +7,7 @@ import { AuthHeader, LoadingPage } from "@/components/PageLayout";
 import { useWashWorld } from "@/hooks/useWashWorld";
 
 export default function PaymentPage() {
-  const { createAccount, goTo, isHydrated, notice, plans, signupForm } = useWashWorld({
+  const { browserReady, createAccount, goTo, notice, plans, signupForm } = useWashWorld({
     loadPlans: true,
   });
   const [formError, setFormError] = useState("");
@@ -15,7 +15,7 @@ export default function PaymentPage() {
   const [expiry, setExpiry] = useState("");
   const [cvc, setCvc] = useState("");
 
-  if (!isHydrated) return <LoadingPage text="Åbner betaling..." />;
+  if (!browserReady) return <LoadingPage text="Åbner betaling..." />;
 
   async function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();

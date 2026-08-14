@@ -8,11 +8,11 @@ import { useWashWorld } from "@/hooks/useWashWorld";
 import type { ResetPasswordPayload } from "@/types/app";
 
 export default function ResetPasswordPage() {
-  const { goTo, isHydrated, notice, saveNewPassword } = useWashWorld();
+  const { browserReady, goTo, notice, saveNewPassword } = useWashWorld();
   const [form, setForm] = useState<ResetPasswordPayload>({ reset_key: "", password: "" });
   const [formError, setFormError] = useState("");
 
-  if (!isHydrated) return <LoadingPage text="Åbner nulstilling..." />;
+  if (!browserReady) return <LoadingPage text="Åbner nulstilling..." />;
 
   function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();

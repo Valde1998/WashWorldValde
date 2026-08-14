@@ -5,8 +5,8 @@ import { useWashWorld } from "@/hooks/useWashWorld";
 
 export default function VerifyEmailPage() {
   const {
+    browserReady,
     goTo,
-    isHydrated,
     notice,
     resendUserVerification,
     verificationEmail,
@@ -14,7 +14,7 @@ export default function VerifyEmailPage() {
     verifyUserEmail,
   } = useWashWorld({ autoVerifyEmail: true });
 
-  if (!isHydrated) return <LoadingPage text="Åbner emailbekræftelse..." />;
+  if (!browserReady) return <LoadingPage text="Åbner emailbekræftelse..." />;
 
   return (
     <main className="mobile-frame auth-screen">

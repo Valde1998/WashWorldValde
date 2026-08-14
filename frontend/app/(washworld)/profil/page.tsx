@@ -19,8 +19,8 @@ export default function ProfilePage() {
   const {
     locations,
     logout,
-    memberLoading,
     notice,
+    pageLoading,
     plans,
     saveProfile,
     user,
@@ -47,7 +47,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <MemberPage loading={memberLoading} notice={notice} title="Min profil">
+    <MemberPage loading={pageLoading} notice={notice} title="Min profil">
       {user ? (
         <section className="app-screen profile-screen">
           <div className="profile-intro">

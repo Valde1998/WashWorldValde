@@ -8,11 +8,11 @@ import { useWashWorld } from "@/hooks/useWashWorld";
 import { isValidEmail } from "@/lib/formValidation";
 
 export default function ForgotPasswordPage() {
-  const { goTo, isHydrated, notice, requestPasswordReset } = useWashWorld();
+  const { browserReady, goTo, notice, requestPasswordReset } = useWashWorld();
   const [email, setEmail] = useState("");
   const [formError, setFormError] = useState("");
 
-  if (!isHydrated) return <LoadingPage text="Åbner siden..." />;
+  if (!browserReady) return <LoadingPage text="Åbner siden..." />;
 
   function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -9,7 +9,7 @@ import { useWashWorld } from "@/hooks/useWashWorld";
 import { APP_TAB_ROUTES } from "@/lib/routes";
 
 export default function LocationsPage() {
-  const { locations, memberLoading, notice } = useWashWorld({
+  const { locations, notice, pageLoading } = useWashWorld({
     loadLocations: true,
     requireLogin: true,
   });
@@ -24,7 +24,7 @@ export default function LocationsPage() {
     : locations;
 
   return (
-    <MemberPage loading={memberLoading} notice={notice} title="Find vaskehal">
+    <MemberPage loading={pageLoading} notice={notice} title="Find vaskehal">
       <section className="app-screen locations-screen">
         <div className="screen-title"><p>I nærheden</p><h1>Find vaskehal</h1></div>
         <label className="mobile-search">

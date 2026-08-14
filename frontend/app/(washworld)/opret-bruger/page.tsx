@@ -9,8 +9,8 @@ import { isValidEmail } from "@/lib/formValidation";
 
 export default function SignupPage() {
   const {
+    browserReady,
     goTo,
-    isHydrated,
     locations,
     plans,
     signupForm,
@@ -19,7 +19,7 @@ export default function SignupPage() {
   } = useWashWorld({ loadLocations: true, loadPlans: true });
   const [formError, setFormError] = useState("");
 
-  if (!isHydrated) return <LoadingPage text="Henter oprettelse..." />;
+  if (!browserReady) return <LoadingPage text="Henter oprettelse..." />;
 
   async function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();

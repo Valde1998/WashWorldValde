@@ -4,9 +4,9 @@ import { AuthHeader, LoadingPage } from "@/components/PageLayout";
 import { useWashWorld } from "@/hooks/useWashWorld";
 
 export default function EmailSentPage() {
-  const { goTo, isHydrated, notice } = useWashWorld();
+  const { browserReady, goTo, notice } = useWashWorld();
 
-  if (!isHydrated) return <LoadingPage text="Åbner siden..." />;
+  if (!browserReady) return <LoadingPage text="Åbner siden..." />;
 
   return (
     <main className="mobile-frame auth-screen">

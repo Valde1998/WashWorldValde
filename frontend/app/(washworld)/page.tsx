@@ -6,9 +6,9 @@ import { LoadingPage } from "@/components/PageLayout";
 import { useWashWorld } from "@/hooks/useWashWorld";
 
 export default function WelcomePage() {
-  const { goTo, isHydrated } = useWashWorld({ redirectIfLoggedIn: true });
+  const { browserReady, goTo } = useWashWorld({ redirectIfLoggedIn: true });
 
-  if (!isHydrated) return <LoadingPage text="Åbner WashWorld..." />;
+  if (!browserReady) return <LoadingPage text="Åbner WashWorld..." />;
 
   return (
     <main className="mobile-frame welcome-screen">
