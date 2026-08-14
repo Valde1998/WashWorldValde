@@ -1,6 +1,6 @@
 "use client";
 
-import type { FormEvent } from "react";
+import type { SyntheticEvent } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -22,7 +22,7 @@ export default function SignupPage() {
 
   if (!isHydrated) return <LoadingPage text="Henter oprettelse..." />;
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError("");
     if (signupForm.first_name.trim().length < 2) {

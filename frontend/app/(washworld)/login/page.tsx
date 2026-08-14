@@ -1,6 +1,6 @@
 "use client";
 
-import type { FormEvent } from "react";
+import type { SyntheticEvent } from "react";
 import { useState } from "react";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
@@ -15,7 +15,7 @@ export default function LoginPage() {
 
   if (!isHydrated) return <LoadingPage text="Åbner login..." />;
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError("");
     if (!isValidEmail(form.email)) {

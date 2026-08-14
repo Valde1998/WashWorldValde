@@ -1,6 +1,6 @@
 "use client";
 
-import type { FormEvent } from "react";
+import type { SyntheticEvent } from "react";
 import { useEffect, useState } from "react";
 
 import { MemberPage } from "@/components/PageLayout";
@@ -37,7 +37,7 @@ export default function ProfilePage() {
     return () => window.clearTimeout(timer);
   }, [user]);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     saveProfile(form);
   }

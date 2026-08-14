@@ -1,6 +1,6 @@
 "use client";
 
-import type { FormEvent } from "react";
+import type { SyntheticEvent } from "react";
 import { useState } from "react";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
@@ -14,7 +14,7 @@ export default function ResetPasswordPage() {
 
   if (!isHydrated) return <LoadingPage text="Åbner nulstilling..." />;
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError("");
     if (form.reset_key.trim().length !== 32) {
