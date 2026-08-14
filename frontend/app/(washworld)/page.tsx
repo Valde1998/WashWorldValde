@@ -1,12 +1,23 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { LoadingPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/hooks/useWashWorld";
+import { afterRender, readToken } from "@/lib/browserSession";
+import { APP_TAB_ROUTES, AUTH_SCREEN_ROUTES } from "@/lib/routes";
 
 export default function WelcomePage() {
-  const { browserReady, goTo } = useWashWorld({ redirectIfLoggedIn: true });
+  const router = useRouter();
+  const [browserReady, setBrowserReady] = useState(false);
+
+  useEffect(() => {
+    return afterRender(() => {
+      if (readToken()) router.replace(APP_TAB_ROUTES.home);
+      setBrowserReady(true);
+    });
+  }, [router]);
 
   if (!browserReady) return <LoadingPage text="Åbner WashWorld..." />;
 
@@ -28,10 +39,10 @@ export default function WelcomePage() {
           <p>Find nærmeste vaskehal, vis din QR-kode og hold styr på alle dine vaske.</p>
         </div>
         <div className="welcome-actions">
-          <button className="primary-button" type="button" onClick={() => goTo("login")}>
+          <button className="primary-button" type="button" onClick={() => router.push(AUTH_SCREEN_ROUTES.login)}>
             Log ind
           </button>
-          <button className="dark-button" type="button" onClick={() => goTo("signup")}>
+          <button className="dark-button" type="button" onClick={() => router.push(AUTH_SCREEN_ROUTES.signup)}>
             Bliv medlem
           </button>
         </div>

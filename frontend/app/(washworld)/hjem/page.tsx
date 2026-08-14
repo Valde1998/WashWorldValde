@@ -2,17 +2,49 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { MemberPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/hooks/useWashWorld";
-import { APP_TAB_ROUTES } from "@/lib/routes";
-import type { Location } from "@/types/app";
+import { apiErrorMessage, getLocations, getMe } from "@/lib/api";
+import { afterRender, clearLogin, readToken, saveNotice, takeNotice } from "@/lib/browserSession";
+import { APP_TAB_ROUTES, AUTH_SCREEN_ROUTES } from "@/lib/routes";
+import type { Location, User } from "@/types/app";
 
 export default function HomePage() {
-  const { locations, notice, pageLoading, user } = useWashWorld({
-    loadLocations: true,
-    requireLogin: true,
-  });
+  const router = useRouter();
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [notice, setNotice] = useState("Klar");
+  const [pageLoading, setPageLoading] = useState(true);
+  const [user, setUser] = useState<User>();
+
+  useEffect(() => {
+    return afterRender(() => {
+      async function loadPage() {
+        const token = readToken();
+
+        if (!token) {
+          router.replace(AUTH_SCREEN_ROUTES.login);
+          return;
+        }
+
+        try {
+          setNotice(takeNotice());
+          setUser(await getMe(token));
+          setLocations(await getLocations());
+        } catch (error) {
+          clearLogin();
+          saveNotice(apiErrorMessage(error));
+          router.replace(AUTH_SCREEN_ROUTES.login);
+        } finally {
+          setPageLoading(false);
+        }
+      }
+
+      void loadPage();
+    });
+  }, [router]);
+
   if (!user) return <MemberPage loading={pageLoading} notice={notice} title="Hjem" />;
 
   const preferredLocation = locations.find((location) => location.location_id === user.location_id);

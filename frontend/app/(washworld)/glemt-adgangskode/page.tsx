@@ -1,32 +1,51 @@
 "use client";
 
 import type { SyntheticEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/hooks/useWashWorld";
+import { apiErrorMessage, forgotPassword } from "@/lib/api";
+import { afterRender, saveNotice, takeNotice } from "@/lib/browserSession";
 import { isValidEmail } from "@/lib/formValidation";
+import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
 
 export default function ForgotPasswordPage() {
-  const { browserReady, goTo, notice, requestPasswordReset } = useWashWorld();
+  const router = useRouter();
+  const [browserReady, setBrowserReady] = useState(false);
   const [email, setEmail] = useState("");
   const [formError, setFormError] = useState("");
+  const [notice, setNotice] = useState("Klar");
+
+  useEffect(() => {
+    return afterRender(() => {
+      setNotice(takeNotice());
+      setBrowserReady(true);
+    });
+  }, []);
 
   if (!browserReady) return <LoadingPage text="Åbner siden..." />;
 
-  function submit(event: SyntheticEvent<HTMLFormElement>) {
+  async function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError("");
     if (!isValidEmail(email)) {
       setFormError("Indtast en gyldig emailadresse.");
       return;
     }
-    requestPasswordReset({ email: email.trim().toLowerCase() });
+
+    try {
+      const response = await forgotPassword({ email: email.trim().toLowerCase() });
+      saveNotice(response.message);
+      router.push(AUTH_SCREEN_ROUTES.sent);
+    } catch (error) {
+      setNotice(apiErrorMessage(error));
+    }
   }
 
   return (
     <main className="mobile-frame auth-screen">
-      <AuthHeader back={() => goTo("login")} />
+      <AuthHeader back={() => router.push(AUTH_SCREEN_ROUTES.login)} />
       <section className="auth-content">
         <h1>Glemt adgangskode</h1>
         <p className="screen-intro">Indtast din email, så sender vi en reset-kode.</p>

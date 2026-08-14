@@ -33,6 +33,21 @@ export class ApiError extends Error {
   }
 }
 
+export function apiErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Noget gik galt";
+}
+
+export function verificationEmailFromError(error: unknown) {
+  if (!(error instanceof ApiError) || typeof error.data !== "object" || error.data === null) {
+    return "";
+  }
+
+  const data = error.data as { verification_required?: unknown; email?: unknown };
+  if (data.verification_required !== true || typeof data.email !== "string") return "";
+
+  return data.email;
+}
+
 function responseErrorMessage(data: unknown) {
   if (
     typeof data === "object" &&

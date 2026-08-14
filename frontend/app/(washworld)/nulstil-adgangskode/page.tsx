@@ -1,20 +1,32 @@
 "use client";
 
 import type { SyntheticEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/hooks/useWashWorld";
+import { apiErrorMessage, resetPassword } from "@/lib/api";
+import { afterRender, saveNotice, takeNotice } from "@/lib/browserSession";
+import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
 import type { ResetPasswordPayload } from "@/types/app";
 
 export default function ResetPasswordPage() {
-  const { browserReady, goTo, notice, saveNewPassword } = useWashWorld();
+  const router = useRouter();
+  const [browserReady, setBrowserReady] = useState(false);
   const [form, setForm] = useState<ResetPasswordPayload>({ reset_key: "", password: "" });
   const [formError, setFormError] = useState("");
+  const [notice, setNotice] = useState("Klar");
+
+  useEffect(() => {
+    return afterRender(() => {
+      setNotice(takeNotice());
+      setBrowserReady(true);
+    });
+  }, []);
 
   if (!browserReady) return <LoadingPage text="Åbner nulstilling..." />;
 
-  function submit(event: SyntheticEvent<HTMLFormElement>) {
+  async function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError("");
     if (form.reset_key.trim().length !== 32) {
@@ -25,12 +37,19 @@ export default function ResetPasswordPage() {
       setFormError("Det nye kodeord skal være mindst 8 tegn.");
       return;
     }
-    saveNewPassword({ ...form, reset_key: form.reset_key.trim() });
+
+    try {
+      const response = await resetPassword({ ...form, reset_key: form.reset_key.trim() });
+      saveNotice(response.message);
+      router.replace(AUTH_SCREEN_ROUTES.login);
+    } catch (error) {
+      setNotice(apiErrorMessage(error));
+    }
   }
 
   return (
     <main className="mobile-frame auth-screen">
-      <AuthHeader back={() => goTo("login")} />
+      <AuthHeader back={() => router.push(AUTH_SCREEN_ROUTES.login)} />
       <section className="auth-content">
         <h1>Nulstil kodeord</h1>
         <p className="screen-intro">Indtast koden fra emailen og vælg et nyt kodeord.</p>

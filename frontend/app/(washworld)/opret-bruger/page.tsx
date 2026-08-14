@@ -1,23 +1,40 @@
 "use client";
 
 import type { SyntheticEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/hooks/useWashWorld";
+import { apiErrorMessage, getLocations, getPlans, validateSignup } from "@/lib/api";
+import { afterRender, EMPTY_SIGNUP, readSignupDraft, saveSignupDraft, type SignupDraft } from "@/lib/browserSession";
 import { isValidEmail } from "@/lib/formValidation";
+import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
+import type { Location, Plan } from "@/types/app";
 
 export default function SignupPage() {
-  const {
-    browserReady,
-    goTo,
-    locations,
-    plans,
-    signupForm,
-    updateSignup,
-    validateSignupDetails,
-  } = useWashWorld({ loadLocations: true, loadPlans: true });
+  const router = useRouter();
+  const [browserReady, setBrowserReady] = useState(false);
   const [formError, setFormError] = useState("");
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [signupForm, setSignupForm] = useState<SignupDraft>(EMPTY_SIGNUP);
+
+  useEffect(() => {
+    return afterRender(() => {
+      setSignupForm(readSignupDraft());
+      void getLocations().then(setLocations).catch((error) => setFormError(apiErrorMessage(error)));
+      void getPlans().then(setPlans).catch((error) => setFormError(apiErrorMessage(error)));
+      setBrowserReady(true);
+    });
+  }, []);
+
+  function updateSignup(changes: Partial<SignupDraft>) {
+    setSignupForm((current) => {
+      const updated = { ...current, ...changes };
+      saveSignupDraft(updated);
+      return updated;
+    });
+  }
 
   if (!browserReady) return <LoadingPage text="Henter oprettelse..." />;
 
@@ -69,18 +86,18 @@ export default function SignupPage() {
     };
 
     try {
-      await validateSignupDetails(details);
+      await validateSignup(details);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Oplysningerne kunne ikke godkendes.");
+      setFormError(apiErrorMessage(error));
       return;
     }
     updateSignup(normalized);
-    goTo("plans");
+    router.push(AUTH_SCREEN_ROUTES.plans);
   }
 
   return (
     <main className="mobile-frame auth-screen">
-      <AuthHeader back={() => goTo("welcome")} />
+      <AuthHeader back={() => router.push(AUTH_SCREEN_ROUTES.welcome)} />
       <section className="auth-content">
         <p className="step-label">Trin 1 af 3</p>
         <h1>Dine oplysninger</h1>

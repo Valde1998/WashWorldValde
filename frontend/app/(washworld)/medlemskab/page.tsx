@@ -1,16 +1,41 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/hooks/useWashWorld";
+import { getPlans } from "@/lib/api";
+import { afterRender, EMPTY_SIGNUP, readSignupDraft, saveSignupDraft, type SignupDraft } from "@/lib/browserSession";
+import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
+import type { Plan } from "@/types/app";
 
 export default function MembershipPage() {
-  const { browserReady, goTo, plans, signupForm, updateSignup } = useWashWorld({ loadPlans: true });
+  const router = useRouter();
+  const [browserReady, setBrowserReady] = useState(false);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [signupForm, setSignupForm] = useState<SignupDraft>(EMPTY_SIGNUP);
+
+  useEffect(() => {
+    return afterRender(() => {
+      setSignupForm(readSignupDraft());
+      void getPlans().then(setPlans);
+      setBrowserReady(true);
+    });
+  }, []);
+
+  function updateSignup(changes: Partial<SignupDraft>) {
+    setSignupForm((current) => {
+      const updated = { ...current, ...changes };
+      saveSignupDraft(updated);
+      return updated;
+    });
+  }
 
   if (!browserReady) return <LoadingPage text="Henter medlemskaber..." />;
 
   return (
     <main className="mobile-frame auth-screen">
-      <AuthHeader back={() => goTo("signup")} />
+      <AuthHeader back={() => router.push(AUTH_SCREEN_ROUTES.signup)} />
       <section className="auth-content wide-auth-content">
         <p className="step-label">Trin 2 af 3</p>
         <h1>Vask som passer til dig</h1>
@@ -41,7 +66,7 @@ export default function MembershipPage() {
           className="primary-button sticky-action"
           disabled={!signupForm.plan_id}
           type="button"
-          onClick={() => goTo("payment")}
+          onClick={() => router.push(AUTH_SCREEN_ROUTES.payment)}
         >
           Fortsæt til betaling
         </button>

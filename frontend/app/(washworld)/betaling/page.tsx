@@ -1,19 +1,42 @@
 "use client";
 
 import type { SyntheticEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/hooks/useWashWorld";
+import { apiErrorMessage, getPlans, signup, verificationEmailFromError } from "@/lib/api";
+import {
+  afterRender,
+  EMPTY_SIGNUP,
+  clearSignupDraft,
+  readSignupDraft,
+  saveNotice,
+  takeNotice,
+  type SignupDraft,
+} from "@/lib/browserSession";
+import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
+import type { Plan } from "@/types/app";
 
 export default function PaymentPage() {
-  const { browserReady, createAccount, goTo, notice, plans, signupForm } = useWashWorld({
-    loadPlans: true,
-  });
+  const router = useRouter();
+  const [browserReady, setBrowserReady] = useState(false);
   const [formError, setFormError] = useState("");
+  const [notice, setNotice] = useState("Klar");
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [signupForm, setSignupForm] = useState<SignupDraft>(EMPTY_SIGNUP);
   const [card, setCard] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvc, setCvc] = useState("");
+
+  useEffect(() => {
+    return afterRender(() => {
+      setNotice(takeNotice());
+      setSignupForm(readSignupDraft());
+      void getPlans().then(setPlans).catch((error) => setNotice(apiErrorMessage(error)));
+      setBrowserReady(true);
+    });
+  }, []);
 
   if (!browserReady) return <LoadingPage text="Åbner betaling..." />;
 
@@ -32,20 +55,35 @@ export default function PaymentPage() {
       setFormError("CVC skal bestå af 3 cifre.");
       return;
     }
-    await createAccount({
-      email: signupForm.email,
-      first_name: signupForm.first_name,
-      license_plate: signupForm.license_plate,
-      location_id: signupForm.location_id,
-      password: signupForm.password,
-      phone: signupForm.phone,
-      plan_id: signupForm.plan_id,
-    });
+
+    try {
+      const response = await signup({
+        email: signupForm.email,
+        first_name: signupForm.first_name,
+        license_plate: signupForm.license_plate,
+        location_id: signupForm.location_id,
+        password: signupForm.password,
+        phone: signupForm.phone,
+        plan_id: signupForm.plan_id,
+      });
+      clearSignupDraft();
+      saveNotice(response.message);
+      router.push(`${AUTH_SCREEN_ROUTES.verify}?email=${encodeURIComponent(response.email)}`);
+    } catch (error) {
+      const verificationEmail = verificationEmailFromError(error);
+      if (verificationEmail) {
+        saveNotice(apiErrorMessage(error));
+        router.push(`${AUTH_SCREEN_ROUTES.verify}?email=${encodeURIComponent(verificationEmail)}`);
+        return;
+      }
+
+      setNotice(apiErrorMessage(error));
+    }
   }
 
   return (
     <main className="mobile-frame auth-screen">
-      <AuthHeader back={() => goTo("plans")} />
+      <AuthHeader back={() => router.push(AUTH_SCREEN_ROUTES.plans)} />
       <section className="auth-content">
         <p className="step-label">Trin 3 af 3</p>
         <h1>Opdater dit betalingskort</h1>

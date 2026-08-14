@@ -2,22 +2,63 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 
 import { MemberPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/hooks/useWashWorld";
-import { APP_TAB_ROUTES } from "@/lib/routes";
+import { apiErrorMessage, createWash, getLocations, getMe } from "@/lib/api";
+import { afterRender, clearLogin, readToken, saveNotice, takeNotice } from "@/lib/browserSession";
+import { APP_TAB_ROUTES, AUTH_SCREEN_ROUTES } from "@/lib/routes";
+import type { Location, User } from "@/types/app";
 
 export default function LocationPage() {
+  const router = useRouter();
   const { slug } = useParams<{ slug: string }>();
-  const {
-    locations,
-    notice,
-    pageLoading,
-    registerWash,
-    user,
-  } = useWashWorld({ loadLocations: true, requireLogin: true });
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [notice, setNotice] = useState("Klar");
+  const [pageLoading, setPageLoading] = useState(true);
+  const [token, setToken] = useState("");
+  const [user, setUser] = useState<User>();
   const location = locations.find((item) => item.slug === slug);
+
+  useEffect(() => {
+    return afterRender(() => {
+      async function loadPage() {
+        const savedToken = readToken();
+
+        if (!savedToken) {
+          router.replace(AUTH_SCREEN_ROUTES.login);
+          return;
+        }
+
+        try {
+          setNotice(takeNotice());
+          setToken(savedToken);
+          setUser(await getMe(savedToken));
+          setLocations(await getLocations());
+        } catch (error) {
+          clearLogin();
+          saveNotice(apiErrorMessage(error));
+          router.replace(AUTH_SCREEN_ROUTES.login);
+        } finally {
+          setPageLoading(false);
+        }
+      }
+
+      void loadPage();
+    });
+  }, [router]);
+
+  async function registerWash(locationId: number, washType: string) {
+    if (!token) return;
+
+    try {
+      await createWash(token, locationId, washType);
+      setNotice("Vasken er registreret");
+    } catch (error) {
+      setNotice(apiErrorMessage(error));
+    }
+  }
 
   return (
     <MemberPage loading={pageLoading} notice={notice} title="Vaskehal">

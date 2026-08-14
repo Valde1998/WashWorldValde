@@ -1,21 +1,34 @@
 "use client";
 
 import type { SyntheticEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/hooks/useWashWorld";
+import { apiErrorMessage, login, verificationEmailFromError } from "@/lib/api";
+import { afterRender, readToken, saveLogin, saveNotice, takeNotice } from "@/lib/browserSession";
 import { isValidEmail } from "@/lib/formValidation";
+import { APP_TAB_ROUTES, AUTH_SCREEN_ROUTES } from "@/lib/routes";
 import type { LoginPayload } from "@/types/app";
 
 export default function LoginPage() {
-  const { browserReady, goTo, loginUser, notice } = useWashWorld({ redirectIfLoggedIn: true });
+  const router = useRouter();
+  const [browserReady, setBrowserReady] = useState(false);
   const [formError, setFormError] = useState("");
   const [form, setForm] = useState<LoginPayload>({ email: "", password: "" });
+  const [notice, setNotice] = useState("Klar");
+
+  useEffect(() => {
+    return afterRender(() => {
+      setNotice(takeNotice());
+      if (readToken()) router.replace(APP_TAB_ROUTES.home);
+      setBrowserReady(true);
+    });
+  }, [router]);
 
   if (!browserReady) return <LoadingPage text="Åbner login..." />;
 
-  function submit(event: SyntheticEvent<HTMLFormElement>) {
+  async function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError("");
     if (!isValidEmail(form.email)) {
@@ -26,12 +39,26 @@ export default function LoginPage() {
       setFormError("Kodeordet skal være mindst 8 tegn.");
       return;
     }
-    loginUser({ email: form.email.trim().toLowerCase(), password: form.password });
+
+    try {
+      const session = await login({ email: form.email.trim().toLowerCase(), password: form.password });
+      saveLogin(session);
+      router.replace(APP_TAB_ROUTES.home);
+    } catch (error) {
+      const verificationEmail = verificationEmailFromError(error);
+      if (verificationEmail) {
+        saveNotice(apiErrorMessage(error));
+        router.push(`${AUTH_SCREEN_ROUTES.verify}?email=${encodeURIComponent(verificationEmail)}`);
+        return;
+      }
+
+      setNotice(apiErrorMessage(error));
+    }
   }
 
   return (
     <main className="mobile-frame auth-screen">
-      <AuthHeader back={() => goTo("welcome")} />
+      <AuthHeader back={() => router.push(AUTH_SCREEN_ROUTES.welcome)} />
       <section className="auth-content">
         <h1>Log ind</h1>
         <p className="screen-intro">Log ind for at se dit medlemskab og dine seneste vaske.</p>
@@ -58,12 +85,12 @@ export default function LoginPage() {
             />
           </label>
           <button className="primary-button" type="submit">Log ind</button>
-          <button className="text-button" type="button" onClick={() => goTo("forgot")}>
+          <button className="text-button" type="button" onClick={() => router.push(AUTH_SCREEN_ROUTES.forgot)}>
             Glemt adgangskode?
           </button>
           <p className="auth-switch">
             Har du ikke en bruger?{" "}
-            <button type="button" onClick={() => goTo("signup")}>Bliv medlem</button>
+            <button type="button" onClick={() => router.push(AUTH_SCREEN_ROUTES.signup)}>Bliv medlem</button>
           </p>
         </form>
       </section>

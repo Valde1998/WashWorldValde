@@ -2,10 +2,13 @@
 
 import type { SyntheticEvent } from "react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { MemberPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/hooks/useWashWorld";
-import type { UpdateProfilePayload } from "@/types/app";
+import { apiErrorMessage, getLocations, getMe, getPlans, updateMe } from "@/lib/api";
+import { afterRender, clearLogin, readToken, saveNotice, takeNotice } from "@/lib/browserSession";
+import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
+import type { Location, Plan, UpdateProfilePayload, User } from "@/types/app";
 
 const emptyProfile: UpdateProfilePayload = {
   first_name: "",
@@ -16,20 +19,47 @@ const emptyProfile: UpdateProfilePayload = {
 };
 
 export default function ProfilePage() {
-  const {
-    locations,
-    logout,
-    notice,
-    pageLoading,
-    plans,
-    saveProfile,
-    user,
-  } = useWashWorld({ loadLocations: true, loadPlans: true, requireLogin: true });
+  const router = useRouter();
   const [form, setForm] = useState<UpdateProfilePayload>(emptyProfile);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [notice, setNotice] = useState("Klar");
+  const [pageLoading, setPageLoading] = useState(true);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [token, setToken] = useState("");
+  const [user, setUser] = useState<User>();
+
+  useEffect(() => {
+    return afterRender(() => {
+      async function loadPage() {
+        const savedToken = readToken();
+
+        if (!savedToken) {
+          router.replace(AUTH_SCREEN_ROUTES.login);
+          return;
+        }
+
+        try {
+          setNotice(takeNotice());
+          setToken(savedToken);
+          setUser(await getMe(savedToken));
+          setLocations(await getLocations());
+          setPlans(await getPlans());
+        } catch (error) {
+          clearLogin();
+          saveNotice(apiErrorMessage(error));
+          router.replace(AUTH_SCREEN_ROUTES.login);
+        } finally {
+          setPageLoading(false);
+        }
+      }
+
+      void loadPage();
+    });
+  }, [router]);
 
   useEffect(() => {
     if (!user) return;
-    const timer = window.setTimeout(() => {
+    return afterRender(() => {
       setForm({
         first_name: user.first_name,
         license_plate: user.license_plate,
@@ -37,13 +67,24 @@ export default function ProfilePage() {
         location_id: user.location_id,
         plan_id: user.plan_id,
       });
-    }, 0);
-    return () => window.clearTimeout(timer);
+    });
   }, [user]);
 
-  function submit(event: SyntheticEvent<HTMLFormElement>) {
+  async function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
-    saveProfile(form);
+    if (!token) return;
+
+    try {
+      setUser(await updateMe(token, form));
+      setNotice("Profilen er gemt");
+    } catch (error) {
+      setNotice(apiErrorMessage(error));
+    }
+  }
+
+  function logout() {
+    clearLogin();
+    router.replace(AUTH_SCREEN_ROUTES.welcome);
   }
 
   return (

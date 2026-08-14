@@ -2,18 +2,21 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { MemberPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/hooks/useWashWorld";
-import { APP_TAB_ROUTES } from "@/lib/routes";
+import { apiErrorMessage, getLocations, getMe } from "@/lib/api";
+import { afterRender, clearLogin, readToken, saveNotice, takeNotice } from "@/lib/browserSession";
+import { APP_TAB_ROUTES, AUTH_SCREEN_ROUTES } from "@/lib/routes";
+import type { Location } from "@/types/app";
 
 export default function LocationsPage() {
-  const { locations, notice, pageLoading } = useWashWorld({
-    loadLocations: true,
-    requireLogin: true,
-  });
+  const router = useRouter();
+  const [locations, setLocations] = useState<Location[]>([]);
   const [locationSearch, setLocationSearch] = useState("");
+  const [notice, setNotice] = useState("Klar");
+  const [pageLoading, setPageLoading] = useState(true);
   const search = locationSearch.trim().toLowerCase();
   const filteredLocations = search
     ? locations.filter((location) =>
@@ -22,6 +25,33 @@ export default function LocationsPage() {
         ),
       )
     : locations;
+
+  useEffect(() => {
+    return afterRender(() => {
+      async function loadPage() {
+        const token = readToken();
+
+        if (!token) {
+          router.replace(AUTH_SCREEN_ROUTES.login);
+          return;
+        }
+
+        try {
+          setNotice(takeNotice());
+          await getMe(token);
+          setLocations(await getLocations());
+        } catch (error) {
+          clearLogin();
+          saveNotice(apiErrorMessage(error));
+          router.replace(AUTH_SCREEN_ROUTES.login);
+        } finally {
+          setPageLoading(false);
+        }
+      }
+
+      void loadPage();
+    });
+  }, [router]);
 
   return (
     <MemberPage loading={pageLoading} notice={notice} title="Find vaskehal">
