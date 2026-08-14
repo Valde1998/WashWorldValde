@@ -17,14 +17,11 @@ const emptyProfile: UpdateProfilePayload = {
 
 export default function ProfilePage() {
   const {
-    isSaving,
     locations,
-    locationsLoading,
     logout,
     memberLoading,
     notice,
     plans,
-    plansLoading,
     saveProfile,
     user,
   } = useWashWorld({ loadLocations: true, loadPlans: true, requireLogin: true });
@@ -50,7 +47,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <MemberPage loading={memberLoading || locationsLoading || plansLoading} notice={notice} title="Min profil">
+    <MemberPage loading={memberLoading} notice={notice} title="Min profil">
       {user ? (
         <section className="app-screen profile-screen">
           <div className="profile-intro">
@@ -93,7 +90,7 @@ export default function ProfilePage() {
                 ))}
               </select>
             </label>
-            <button className="primary-button" disabled={isSaving} type="submit">{isSaving ? "Gemmer..." : "Gem ændringer"}</button>
+            <button className="primary-button" type="submit">Gem ændringer</button>
             <button className="logout-button" onClick={logout} type="button">Log ud</button>
           </form>
         </section>

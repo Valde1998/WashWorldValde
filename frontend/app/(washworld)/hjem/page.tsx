@@ -9,11 +9,11 @@ import { APP_TAB_ROUTES } from "@/lib/routes";
 import type { Location } from "@/types/app";
 
 export default function HomePage() {
-  const { locations, locationsLoading, memberLoading, notice, user } = useWashWorld({
+  const { locations, memberLoading, notice, user } = useWashWorld({
     loadLocations: true,
     requireLogin: true,
   });
-  if (!user) return <MemberPage loading={memberLoading || locationsLoading} notice={notice} title="Hjem" />;
+  if (!user) return <MemberPage loading={memberLoading} notice={notice} title="Hjem" />;
 
   const preferredLocation = locations.find((location) => location.location_id === user.location_id);
   const homeLocations = [
@@ -24,7 +24,7 @@ export default function HomePage() {
     .slice(0, 3);
 
   return (
-    <MemberPage loading={memberLoading || locationsLoading} notice={notice} title="Hjem">
+    <MemberPage loading={memberLoading} notice={notice} title="Hjem">
       <section className="app-screen home-screen">
         <div className="greeting-row">
           <div>

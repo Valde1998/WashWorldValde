@@ -8,7 +8,7 @@ import { useWashWorld } from "@/hooks/useWashWorld";
 import type { ResetPasswordPayload } from "@/types/app";
 
 export default function ResetPasswordPage() {
-  const { authLoading, goTo, isHydrated, notice, saveNewPassword } = useWashWorld();
+  const { goTo, isHydrated, notice, saveNewPassword } = useWashWorld();
   const [form, setForm] = useState<ResetPasswordPayload>({ reset_key: "", password: "" });
   const [formError, setFormError] = useState("");
 
@@ -56,7 +56,7 @@ export default function ResetPasswordPage() {
               onChange={(event) => setForm({ ...form, password: event.target.value })}
             />
           </label>
-          <button className="primary-button" disabled={authLoading} type="submit">Gem nyt kodeord</button>
+          <button className="primary-button" type="submit">Gem nyt kodeord</button>
         </form>
       </section>
     </main>

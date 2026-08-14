@@ -5,7 +5,6 @@ import { useWashWorld } from "@/hooks/useWashWorld";
 
 export default function VerifyEmailPage() {
   const {
-    authLoading,
     goTo,
     isHydrated,
     notice,
@@ -35,16 +34,14 @@ export default function VerifyEmailPage() {
         {verificationToken ? (
           <button
             className="primary-button verification-form"
-            disabled={authLoading}
             type="button"
             onClick={verifyUserEmail}
           >
-            {authLoading ? "Bekræfter..." : "Prøv bekræftelse igen"}
+            Prøv bekræftelse igen
           </button>
         ) : null}
         <button
           className="text-button"
-          disabled={authLoading}
           type="button"
           onClick={resendUserVerification}
         >

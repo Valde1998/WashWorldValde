@@ -8,7 +8,7 @@ import { useWashWorld } from "@/hooks/useWashWorld";
 import { isValidEmail } from "@/lib/formValidation";
 
 export default function ForgotPasswordPage() {
-  const { authLoading, goTo, isHydrated, notice, requestPasswordReset } = useWashWorld();
+  const { goTo, isHydrated, notice, requestPasswordReset } = useWashWorld();
   const [email, setEmail] = useState("");
   const [formError, setFormError] = useState("");
 
@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
             Email
             <input autoComplete="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
           </label>
-          <button className="primary-button" disabled={authLoading} type="submit">Send email</button>
+          <button className="primary-button" type="submit">Send email</button>
         </form>
       </section>
     </main>

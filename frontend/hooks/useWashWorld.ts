@@ -99,21 +99,10 @@ export function useWashWorld(options: UseWashWorldOptions = {}) {
   const [notice, setNotice] = useState("Klar");
   const [signupForm, setSignupForm] = useState<SignupDraft>(EMPTY_SIGNUP);
 
-  const [authLoading, setAuthLoading] = useState(false);
-  const [memberLoading, setMemberLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isCreatingWash, setIsCreatingWash] = useState(false);
-
   const [dashboard, setDashboard] = useState<Dashboard>();
   const [locations, setLocations] = useState<Location[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [washes, setWashes] = useState<Wash[]>([]);
-
-  const [dashboardLoading, setDashboardLoading] = useState(loadDashboardOnStart);
-  const [locationsLoading, setLocationsLoading] = useState(loadLocationsOnStart);
-  const [plansLoading, setPlansLoading] = useState(loadPlansOnStart);
-  const [washesLoading, setWashesLoading] = useState(loadWashesOnStart);
-  const [washesError, setWashesError] = useState(false);
 
   const verificationEmail = searchParams.get("email") || "";
   const verificationToken = searchParams.get("token") || "";
@@ -160,8 +149,6 @@ export function useWashWorld(options: UseWashWorldOptions = {}) {
   }, [rememberNotice, router]);
 
   const loadUser = useCallback(async (currentToken: string) => {
-    setMemberLoading(true);
-
     try {
       setUser(await getMe(currentToken));
     } catch (error) {
@@ -172,58 +159,40 @@ export function useWashWorld(options: UseWashWorldOptions = {}) {
       } else {
         setNotice(errorMessage(error));
       }
-    } finally {
-      setMemberLoading(false);
     }
   }, [clearSession, rememberNotice, router]);
 
   const loadDashboard = useCallback(async () => {
-    setDashboardLoading(true);
-
     try {
       setDashboard(await getDashboard());
     } catch (error) {
       setNotice(errorMessage(error));
-    } finally {
-      setDashboardLoading(false);
     }
   }, []);
 
   const loadLocations = useCallback(async () => {
-    setLocationsLoading(true);
-
     try {
       setLocations(await getLocations());
     } catch (error) {
       setNotice(errorMessage(error));
-    } finally {
-      setLocationsLoading(false);
     }
   }, []);
 
   const loadPlans = useCallback(async () => {
-    setPlansLoading(true);
-
     try {
       setPlans(await getPlans());
     } catch (error) {
       setNotice(errorMessage(error));
-    } finally {
-      setPlansLoading(false);
     }
   }, []);
 
   const loadWashes = useCallback(async () => {
     if (!token) return;
-    setWashesLoading(true);
-    setWashesError(false);
 
     try {
       setWashes(await getWashes(token));
-    } catch {
-      setWashesError(true);
-    } finally {
-      setWashesLoading(false);
+    } catch (error) {
+      setNotice(errorMessage(error));
     }
   }, [token]);
 
@@ -302,30 +271,18 @@ export function useWashWorld(options: UseWashWorldOptions = {}) {
   }
 
   async function loginUser(payload: LoginPayload) {
-    setAuthLoading(true);
-
     try {
       saveSession(await login(payload));
     } catch (error) {
       if (!showVerificationScreen(error)) setNotice(errorMessage(error));
-    } finally {
-      setAuthLoading(false);
     }
   }
 
   async function validateSignupDetails(payload: SignupDetailsPayload) {
-    setAuthLoading(true);
-
-    try {
-      await validateSignup(payload);
-    } finally {
-      setAuthLoading(false);
-    }
+    await validateSignup(payload);
   }
 
   async function createAccount(payload: SignupPayload) {
-    setAuthLoading(true);
-
     try {
       const response = await signup(payload);
       window.sessionStorage.removeItem(SIGNUP_KEY);
@@ -333,8 +290,6 @@ export function useWashWorld(options: UseWashWorldOptions = {}) {
       router.push(`${AUTH_SCREEN_ROUTES.verify}?email=${encodeURIComponent(response.email)}`);
     } catch (error) {
       if (!showVerificationScreen(error)) setNotice(errorMessage(error));
-    } finally {
-      setAuthLoading(false);
     }
   }
 
@@ -344,14 +299,10 @@ export function useWashWorld(options: UseWashWorldOptions = {}) {
       return;
     }
 
-    setAuthLoading(true);
-
     try {
       saveSession(await verifyEmail({ email: verificationEmail, token: verificationToken }));
     } catch (error) {
       setNotice(errorMessage(error));
-    } finally {
-      setAuthLoading(false);
     }
   }, [saveSession, verificationEmail, verificationToken]);
 
@@ -363,7 +314,6 @@ export function useWashWorld(options: UseWashWorldOptions = {}) {
     if (automaticVerificationAttempt.current === attempt) return;
 
     automaticVerificationAttempt.current = attempt;
-    setNotice("Bekræfter din email...");
 
     const timer = window.setTimeout(() => {
       void verifyUserEmail();
@@ -378,64 +328,47 @@ export function useWashWorld(options: UseWashWorldOptions = {}) {
       return;
     }
 
-    setAuthLoading(true);
-
     try {
       const response = await resendVerification(verificationEmail);
       setNotice(response.message);
     } catch (error) {
       setNotice(errorMessage(error));
-    } finally {
-      setAuthLoading(false);
     }
   }
 
   async function requestPasswordReset(payload: ForgotPasswordPayload) {
-    setAuthLoading(true);
-
     try {
       const response = await forgotPassword(payload);
       rememberNotice(response.message);
       router.push(AUTH_SCREEN_ROUTES.sent);
     } catch (error) {
       setNotice(errorMessage(error));
-    } finally {
-      setAuthLoading(false);
     }
   }
 
   async function saveNewPassword(payload: ResetPasswordPayload) {
-    setAuthLoading(true);
-
     try {
       const response = await resetPassword(payload);
       rememberNotice(response.message);
       router.replace(AUTH_SCREEN_ROUTES.login);
     } catch (error) {
       setNotice(errorMessage(error));
-    } finally {
-      setAuthLoading(false);
     }
   }
 
   async function saveProfile(payload: UpdateProfilePayload) {
     if (!token) return;
-    setIsSaving(true);
 
     try {
       setUser(await updateMe(token, payload));
       setNotice("Profilen er gemt");
     } catch (error) {
       setNotice(errorMessage(error));
-    } finally {
-      setIsSaving(false);
     }
   }
 
   async function registerWash(locationId: number, washType: string) {
     if (!token) return;
-    setIsCreatingWash(true);
-    setNotice("Vasken registreres...");
 
     try {
       await createWash(token, locationId, washType);
@@ -444,8 +377,6 @@ export function useWashWorld(options: UseWashWorldOptions = {}) {
       setNotice("Vasken er registreret");
     } catch (error) {
       setNotice(errorMessage(error));
-    } finally {
-      setIsCreatingWash(false);
     }
   }
 
@@ -456,34 +387,22 @@ export function useWashWorld(options: UseWashWorldOptions = {}) {
   }
 
   return {
-    authLoading,
     createAccount,
     dashboard,
-    dashboardLoading,
     goTo,
-    isCreatingWash,
     isHydrated,
-    isSaving,
-    loadDashboard,
-    loadLocations,
-    loadPlans,
-    loadWashes,
     locations,
-    locationsLoading,
     loginUser,
     logout,
-    memberLoading: !isHydrated || memberLoading || (requireLogin && (!token || !user)),
+    memberLoading: !isHydrated || (requireLogin && (!token || !user)),
     notice: pageNotice,
     plans,
-    plansLoading,
     registerWash,
     requestPasswordReset,
     resendUserVerification,
     saveNewPassword,
     saveProfile,
-    setNotice,
     signupForm,
-    token,
     updateSignup,
     user,
     validateSignupDetails,
@@ -491,7 +410,5 @@ export function useWashWorld(options: UseWashWorldOptions = {}) {
     verificationToken,
     verifyUserEmail,
     washes,
-    washesError,
-    washesLoading,
   };
 }

@@ -11,9 +11,7 @@ import { APP_TAB_ROUTES } from "@/lib/routes";
 export default function LocationPage() {
   const { slug } = useParams<{ slug: string }>();
   const {
-    isCreatingWash,
     locations,
-    locationsLoading,
     memberLoading,
     notice,
     registerWash,
@@ -22,7 +20,7 @@ export default function LocationPage() {
   const location = locations.find((item) => item.slug === slug);
 
   return (
-    <MemberPage loading={memberLoading || locationsLoading} notice={notice} title="Vaskehal">
+    <MemberPage loading={memberLoading} notice={notice} title="Vaskehal">
       {location ? (
         <section className="location-detail-screen">
           <div className="location-hero">
@@ -54,11 +52,11 @@ export default function LocationPage() {
             </div>
             <button
               className="primary-button"
-              disabled={isCreatingWash || !user}
+              disabled={!user}
               onClick={() => user && registerWash(location.location_id, `${user.plan_name} vask`)}
               type="button"
             >
-              {isCreatingWash ? "Registrerer..." : "Registrer vask"}
+              Registrer vask
             </button>
           </div>
         </section>

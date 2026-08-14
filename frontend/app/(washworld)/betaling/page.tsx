@@ -7,7 +7,7 @@ import { AuthHeader, LoadingPage } from "@/components/PageLayout";
 import { useWashWorld } from "@/hooks/useWashWorld";
 
 export default function PaymentPage() {
-  const { authLoading, createAccount, goTo, isHydrated, notice, plans, signupForm } = useWashWorld({
+  const { createAccount, goTo, isHydrated, notice, plans, signupForm } = useWashWorld({
     loadPlans: true,
   });
   const [formError, setFormError] = useState("");
@@ -92,9 +92,7 @@ export default function PaymentPage() {
             <span>Valgt abonnement</span>
             <strong>{plans.find((plan) => plan.plan_id === signupForm.plan_id)?.name ?? "WashWorld"}</strong>
           </div>
-          <button className="primary-button" disabled={authLoading} type="submit">
-            {authLoading ? "Opretter medlemskab..." : "Start medlemskab"}
-          </button>
+          <button className="primary-button" type="submit">Start medlemskab</button>
         </form>
       </section>
     </main>

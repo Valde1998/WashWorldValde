@@ -9,7 +9,7 @@ import { isValidEmail } from "@/lib/formValidation";
 import type { LoginPayload } from "@/types/app";
 
 export default function LoginPage() {
-  const { authLoading, goTo, isHydrated, loginUser, notice } = useWashWorld({ redirectIfLoggedIn: true });
+  const { goTo, isHydrated, loginUser, notice } = useWashWorld({ redirectIfLoggedIn: true });
   const [formError, setFormError] = useState("");
   const [form, setForm] = useState<LoginPayload>({ email: "", password: "" });
 
@@ -57,9 +57,7 @@ export default function LoginPage() {
               onChange={(event) => setForm({ ...form, password: event.target.value })}
             />
           </label>
-          <button className="primary-button" disabled={authLoading} type="submit">
-            {authLoading ? "Logger ind..." : "Log ind"}
-          </button>
+          <button className="primary-button" type="submit">Log ind</button>
           <button className="text-button" type="button" onClick={() => goTo("forgot")}>
             Glemt adgangskode?
           </button>

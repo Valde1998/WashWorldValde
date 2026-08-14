@@ -4,9 +4,9 @@ import { AuthHeader, LoadingPage } from "@/components/PageLayout";
 import { useWashWorld } from "@/hooks/useWashWorld";
 
 export default function MembershipPage() {
-  const { goTo, isHydrated, plans, plansLoading, signupForm, updateSignup } = useWashWorld({ loadPlans: true });
+  const { goTo, isHydrated, plans, signupForm, updateSignup } = useWashWorld({ loadPlans: true });
 
-  if (!isHydrated || plansLoading) return <LoadingPage text="Henter medlemskaber..." />;
+  if (!isHydrated) return <LoadingPage text="Henter medlemskaber..." />;
 
   return (
     <main className="mobile-frame auth-screen">

@@ -45,7 +45,7 @@ function ActivityChart({ data }: { data: Dashboard["washes_per_day"] }) {
 }
 
 export default function ActivityPage() {
-  const { dashboard, locations, memberLoading, notice, washes, washesError, washesLoading } = useWashWorld({
+  const { dashboard, locations, memberLoading, notice, washes } = useWashWorld({
     loadDashboard: true,
     loadLocations: true,
     loadWashes: true,
@@ -74,9 +74,7 @@ export default function ActivityPage() {
             </button>
           ) : null}
         </div>
-        {washesLoading ? <p className="empty-state">Henter aktivitet...</p> : null}
-        {washesError ? <p className="form-error">Kunne ikke hente din aktivitet.</p> : null}
-        {!washesLoading && !washesError && recentWashes.length === 0 ? (
+        {recentWashes.length === 0 ? (
           <p className="empty-state">Du har ingen registrerede vaske endnu.</p>
         ) : null}
         <div className="activity-list">

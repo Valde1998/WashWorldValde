@@ -9,7 +9,6 @@ import { isValidEmail } from "@/lib/formValidation";
 
 export default function SignupPage() {
   const {
-    authLoading,
     goTo,
     isHydrated,
     locations,
@@ -159,10 +158,10 @@ export default function SignupPage() {
           </label>
           <button
             className="primary-button"
-            disabled={authLoading || !locations.length || !plans.length}
+            disabled={!locations.length || !plans.length}
             type="submit"
           >
-            {authLoading ? "Kontrollerer..." : "Fortsæt"}
+            Fortsæt
           </button>
         </form>
       </section>
