@@ -4,7 +4,9 @@ import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 
 import { MemberPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/components/WashWorldProvider";
+import { useAuth } from "@/hooks/useAuth";
+import { useLocations } from "@/hooks/useLocations";
+import { usePlans } from "@/hooks/usePlans";
 import type { UpdateProfilePayload } from "@/types/app";
 
 const emptyProfile: UpdateProfilePayload = {
@@ -16,7 +18,9 @@ const emptyProfile: UpdateProfilePayload = {
 };
 
 export default function ProfilePage() {
-  const { isSaving, locations, logout, plans, saveProfile, user } = useWashWorld();
+  const { isSaving, logout, memberLoading, notice, saveProfile, user } = useAuth({ requireLogin: true });
+  const { isLoading: locationsLoading, locations } = useLocations();
+  const { isLoading: plansLoading, plans } = usePlans();
   const [form, setForm] = useState<UpdateProfilePayload>(emptyProfile);
 
   useEffect(() => {
@@ -39,7 +43,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <MemberPage title="Min profil">
+    <MemberPage loading={memberLoading || locationsLoading || plansLoading} notice={notice} title="Min profil">
       {user ? (
         <section className="app-screen profile-screen">
           <div className="profile-intro">

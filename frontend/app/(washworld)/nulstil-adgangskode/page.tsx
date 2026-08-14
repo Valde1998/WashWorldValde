@@ -4,11 +4,11 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/components/WashWorldProvider";
+import { usePasswordReset } from "@/hooks/usePasswordReset";
 import type { ResetPasswordPayload } from "@/types/app";
 
 export default function ResetPasswordPage() {
-  const { authLoading, goTo, isHydrated, notice, saveNewPassword } = useWashWorld();
+  const { authLoading, goTo, isHydrated, notice, saveNewPassword } = usePasswordReset();
   const [form, setForm] = useState<ResetPasswordPayload>({ reset_key: "", password: "" });
   const [formError, setFormError] = useState("");
 

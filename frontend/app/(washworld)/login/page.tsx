@@ -4,12 +4,12 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/components/WashWorldProvider";
+import { useAuth } from "@/hooks/useAuth";
 import { isValidEmail } from "@/lib/formValidation";
 import type { LoginPayload } from "@/types/app";
 
 export default function LoginPage() {
-  const { authLoading, goTo, isHydrated, loginUser, notice } = useWashWorld();
+  const { authLoading, goTo, isHydrated, loginUser, notice } = useAuth({ redirectIfLoggedIn: true });
   const [formError, setFormError] = useState("");
   const [form, setForm] = useState<LoginPayload>({ email: "", password: "" });
 

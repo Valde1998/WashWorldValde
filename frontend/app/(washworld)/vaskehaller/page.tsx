@@ -5,11 +5,13 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { MemberPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/components/WashWorldProvider";
+import { useAuth } from "@/hooks/useAuth";
+import { useLocations } from "@/hooks/useLocations";
 import { APP_TAB_ROUTES } from "@/lib/routes";
 
 export default function LocationsPage() {
-  const { locations } = useWashWorld();
+  const { memberLoading, notice } = useAuth({ requireLogin: true });
+  const { isLoading, locations } = useLocations();
   const [locationSearch, setLocationSearch] = useState("");
   const search = locationSearch.trim().toLowerCase();
   const filteredLocations = search
@@ -21,7 +23,7 @@ export default function LocationsPage() {
     : locations;
 
   return (
-    <MemberPage title="Find vaskehal">
+    <MemberPage loading={memberLoading || isLoading} notice={notice} title="Find vaskehal">
       <section className="app-screen locations-screen">
         <div className="screen-title"><p>I nærheden</p><h1>Find vaskehal</h1></div>
         <label className="mobile-search">

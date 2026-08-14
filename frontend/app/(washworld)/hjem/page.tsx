@@ -4,13 +4,15 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { MemberPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/components/WashWorldProvider";
+import { useAuth } from "@/hooks/useAuth";
+import { useLocations } from "@/hooks/useLocations";
 import { APP_TAB_ROUTES } from "@/lib/routes";
 import type { Location } from "@/types/app";
 
 export default function HomePage() {
-  const { locations, user } = useWashWorld();
-  if (!user) return <MemberPage title="Hjem" />;
+  const { memberLoading, notice, user } = useAuth({ requireLogin: true });
+  const { isLoading: locationsLoading, locations } = useLocations();
+  if (!user) return <MemberPage loading={memberLoading || locationsLoading} notice={notice} title="Hjem" />;
 
   const preferredLocation = locations.find((location) => location.location_id === user.location_id);
   const homeLocations = [
@@ -21,7 +23,7 @@ export default function HomePage() {
     .slice(0, 3);
 
   return (
-    <MemberPage title="Hjem">
+    <MemberPage loading={memberLoading || locationsLoading} notice={notice} title="Hjem">
       <section className="app-screen home-screen">
         <div className="greeting-row">
           <div>

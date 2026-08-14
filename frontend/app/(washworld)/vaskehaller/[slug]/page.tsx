@@ -5,16 +5,25 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 
 import { MemberPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/components/WashWorldProvider";
+import { useAuth } from "@/hooks/useAuth";
+import { useLocations } from "@/hooks/useLocations";
+import { useWashes } from "@/hooks/useWashes";
 import { APP_TAB_ROUTES } from "@/lib/routes";
 
 export default function LocationPage() {
   const { slug } = useParams<{ slug: string }>();
-  const { isCreatingWash, locations, registerWash, user } = useWashWorld();
+  const { memberLoading, notice, token, user } = useAuth({ requireLogin: true });
+  const { isLoading, locations } = useLocations();
+  const {
+    isCreatingWash,
+    notice: washNotice,
+    registerWash,
+  } = useWashes(token);
   const location = locations.find((item) => item.slug === slug);
+  const pageNotice = washNotice !== "Klar" ? washNotice : notice;
 
   return (
-    <MemberPage title="Vaskehal">
+    <MemberPage loading={memberLoading || isLoading} notice={pageNotice} title="Vaskehal">
       {location ? (
         <section className="location-detail-screen">
           <div className="location-hero">

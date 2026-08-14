@@ -2,20 +2,28 @@
 
 import type { FormEvent } from "react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/components/WashWorldProvider";
+import { ApiError, signup } from "@/lib/api";
+import { saveStoredNotice } from "@/lib/browserStorage";
+import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
+import { usePlans } from "@/hooks/usePlans";
+import { useSignupDraft } from "@/hooks/useSignupDraft";
 
 export default function PaymentPage() {
-  const { authLoading, createAccount, goTo, isHydrated, plans, signupForm } = useWashWorld();
+  const router = useRouter();
+  const { clearSignup, isHydrated, signupForm } = useSignupDraft();
+  const { plans } = usePlans();
   const [formError, setFormError] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
   const [card, setCard] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvc, setCvc] = useState("");
 
   if (!isHydrated) return <LoadingPage text="Åbner betaling..." />;
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError("");
     if (card.replace(/\D/g, "").length !== 16) {
@@ -31,12 +39,36 @@ export default function PaymentPage() {
       return;
     }
     const { confirm_email: _confirmEmail, ...payload } = signupForm;
-    createAccount(payload);
+
+    setAuthLoading(true);
+    try {
+      const response = await signup(payload);
+      clearSignup();
+      saveStoredNotice(response.message);
+      router.push(`${AUTH_SCREEN_ROUTES.verify}?email=${encodeURIComponent(response.email)}`);
+    } catch (error) {
+      if (
+        error instanceof ApiError &&
+        typeof error.data === "object" &&
+        error.data !== null &&
+        "verification_required" in error.data &&
+        "email" in error.data &&
+        error.data.verification_required === true &&
+        typeof error.data.email === "string"
+      ) {
+        saveStoredNotice(error.message);
+        router.push(`${AUTH_SCREEN_ROUTES.verify}?email=${encodeURIComponent(error.data.email)}`);
+      } else {
+        setFormError(error instanceof Error ? error.message : "Kontoen kunne ikke oprettes.");
+      }
+    } finally {
+      setAuthLoading(false);
+    }
   }
 
   return (
     <main className="mobile-frame auth-screen">
-      <AuthHeader back={() => goTo("plans")} />
+      <AuthHeader back={() => router.push(AUTH_SCREEN_ROUTES.plans)} />
       <section className="auth-content">
         <p className="step-label">Trin 3 af 3</p>
         <h1>Opdater dit betalingskort</h1>

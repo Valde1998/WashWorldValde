@@ -3,10 +3,10 @@
 import Image from "next/image";
 
 import { LoadingPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/components/WashWorldProvider";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function WelcomePage() {
-  const { goTo, isHydrated } = useWashWorld();
+  const { goTo, isHydrated } = useAuth({ redirectIfLoggedIn: true });
 
   if (!isHydrated) return <LoadingPage text="Åbner WashWorld..." />;
 

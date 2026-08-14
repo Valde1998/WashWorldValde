@@ -6,7 +6,6 @@ import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
 import { APP_TAB_ROUTES } from "@/lib/routes";
-import { useWashWorld } from "@/components/WashWorldProvider";
 
 export function LoadingPage({ text = "Henter dit medlemskab..." }: { text?: string }) {
   return (
@@ -38,11 +37,17 @@ const navigation = [
   { href: APP_TAB_ROUTES.profile, icon: "○", label: "Profil" },
 ];
 
-export function MemberPage({ title, children }: { title: string; children?: ReactNode }) {
-  const pathname = usePathname();
-  const { memberLoading, notice, user } = useWashWorld();
+type MemberPageProps = {
+  title: string;
+  children?: ReactNode;
+  loading?: boolean;
+  notice?: string;
+};
 
-  if (memberLoading || !user) return <LoadingPage />;
+export function MemberPage({ title, children, loading = false, notice = "Klar" }: MemberPageProps) {
+  const pathname = usePathname();
+
+  if (loading) return <LoadingPage />;
 
   return (
     <main className="mobile-frame signed-in-app">

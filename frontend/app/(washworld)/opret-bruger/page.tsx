@@ -2,23 +2,23 @@
 
 import type { FormEvent } from "react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/components/WashWorldProvider";
+import { useLocations } from "@/hooks/useLocations";
+import { usePlans } from "@/hooks/usePlans";
+import { useSignupDraft } from "@/hooks/useSignupDraft";
+import { validateSignup } from "@/lib/api";
 import { isValidEmail } from "@/lib/formValidation";
+import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
 
 export default function SignupPage() {
-  const {
-    authLoading,
-    goTo,
-    isHydrated,
-    locations,
-    plans,
-    signupForm,
-    updateSignup,
-    validateSignupDetails,
-  } = useWashWorld();
+  const router = useRouter();
+  const { isHydrated, signupForm, updateSignup } = useSignupDraft();
+  const { locations } = useLocations();
+  const { plans } = usePlans();
   const [formError, setFormError] = useState("");
+  const [isChecking, setIsChecking] = useState(false);
 
   if (!isHydrated) return <LoadingPage text="Henter oprettelse..." />;
 
@@ -63,18 +63,21 @@ export default function SignupPage() {
     const { confirm_email: _confirmEmail, plan_id: _planId, ...details } = normalized;
 
     try {
-      await validateSignupDetails(details);
+      setIsChecking(true);
+      await validateSignup(details);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Oplysningerne kunne ikke godkendes.");
       return;
+    } finally {
+      setIsChecking(false);
     }
     updateSignup(normalized);
-    goTo("plans");
+    router.push(AUTH_SCREEN_ROUTES.plans);
   }
 
   return (
     <main className="mobile-frame auth-screen">
-      <AuthHeader back={() => goTo("welcome")} />
+      <AuthHeader back={() => router.push(AUTH_SCREEN_ROUTES.welcome)} />
       <section className="auth-content">
         <p className="step-label">Trin 1 af 3</p>
         <h1>Dine oplysninger</h1>
@@ -152,10 +155,10 @@ export default function SignupPage() {
           </label>
           <button
             className="primary-button"
-            disabled={authLoading || !locations.length || !plans.length}
+            disabled={isChecking || !locations.length || !plans.length}
             type="submit"
           >
-            {authLoading ? "Kontrollerer..." : "Fortsæt"}
+            {isChecking ? "Kontrollerer..." : "Fortsæt"}
           </button>
         </form>
       </section>

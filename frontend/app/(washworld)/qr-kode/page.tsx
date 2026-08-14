@@ -3,13 +3,13 @@
 import Image from "next/image";
 
 import { MemberPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/components/WashWorldProvider";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function QrCodePage() {
-  const { user } = useWashWorld();
+  const { memberLoading, notice, user } = useAuth({ requireLogin: true });
 
   return (
-    <MemberPage title="QR kode">
+    <MemberPage loading={memberLoading} notice={notice} title="QR kode">
       {user ? (
         <section className="app-screen qr-screen">
           <div className="screen-title"><p>Adgang</p><h1>Scan QR-koden</h1></div>

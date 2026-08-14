@@ -3,7 +3,10 @@
 import { useState } from "react";
 
 import { MemberPage } from "@/components/PageLayout";
-import { useWashWorld } from "@/components/WashWorldProvider";
+import { useAuth } from "@/hooks/useAuth";
+import { useDashboard } from "@/hooks/useDashboard";
+import { useLocations } from "@/hooks/useLocations";
+import { useWashes } from "@/hooks/useWashes";
 import type { Dashboard } from "@/types/app";
 
 function formatWashDate(value: string) {
@@ -45,12 +48,15 @@ function ActivityChart({ data }: { data: Dashboard["washes_per_day"] }) {
 }
 
 export default function ActivityPage() {
-  const { dashboard, locations, washes, washesError, washesLoading } = useWashWorld();
+  const { memberLoading, notice, token } = useAuth({ requireLogin: true });
+  const { dashboard } = useDashboard();
+  const { locations } = useLocations();
+  const { washes, washesError, washesLoading } = useWashes(token);
   const [showAllWashes, setShowAllWashes] = useState(false);
   const recentWashes = showAllWashes ? washes : washes.slice(0, 4);
 
   return (
-    <MemberPage title="Aktivitet">
+    <MemberPage loading={memberLoading} notice={notice} title="Aktivitet">
       <section className="app-screen activity-screen">
         <div className="screen-title">
           <p>Dit overblik</p>
