@@ -3,47 +3,24 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { MemberPage } from "@/components/PageLayout";
-import { apiErrorMessage, getLocations, getMe } from "@/lib/api";
-import { afterRender, clearLogin, readToken, saveNotice, takeNotice } from "@/lib/browserSession";
-import { APP_TAB_ROUTES, AUTH_SCREEN_ROUTES } from "@/lib/routes";
-import type { Location, User } from "@/types/app";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { apiErrorMessage, getLocations } from "@/lib/api";
+import { APP_TAB_ROUTES } from "@/lib/routes";
+import type { Location } from "@/types/app";
 
 export default function HomePage() {
-  const router = useRouter();
   const [locations, setLocations] = useState<Location[]>([]);
-  const [notice, setNotice] = useState("Klar");
-  const [pageLoading, setPageLoading] = useState(true);
-  const [user, setUser] = useState<User>();
+  const { notice, pageLoading, setNotice, user } = useCurrentUser();
 
   useEffect(() => {
-    return afterRender(() => {
-      async function loadPage() {
-        const token = readToken();
+    if (!user) return;
 
-        if (!token) {
-          router.replace(AUTH_SCREEN_ROUTES.login);
-          return;
-        }
-
-        try {
-          setNotice(takeNotice());
-          setUser(await getMe(token));
-          setLocations(await getLocations());
-        } catch (error) {
-          clearLogin();
-          saveNotice(apiErrorMessage(error));
-          router.replace(AUTH_SCREEN_ROUTES.login);
-        } finally {
-          setPageLoading(false);
-        }
-      }
-
-      void loadPage();
-    });
-  }, [router]);
+    void getLocations()
+      .then(setLocations)
+      .catch((error) => setNotice(apiErrorMessage(error)));
+  }, [setNotice, user]);
 
   if (!user) return <MemberPage loading={pageLoading} notice={notice} title="Hjem" />;
 

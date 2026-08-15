@@ -5,10 +5,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { MemberPage } from "@/components/PageLayout";
-import { apiErrorMessage, getLocations, getMe, getPlans, updateMe } from "@/lib/api";
-import { afterRender, clearLogin, readToken, saveNotice, takeNotice } from "@/lib/browserSession";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { apiErrorMessage, getLocations, getPlans, updateMe } from "@/lib/api";
+import { afterRender, clearLogin } from "@/lib/browserSession";
 import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
-import type { Location, Plan, UpdateProfilePayload, User } from "@/types/app";
+import type { Location, Plan, UpdateProfilePayload } from "@/types/app";
 
 const emptyProfile: UpdateProfilePayload = {
   first_name: "",
@@ -22,40 +23,19 @@ export default function ProfilePage() {
   const router = useRouter();
   const [form, setForm] = useState<UpdateProfilePayload>(emptyProfile);
   const [locations, setLocations] = useState<Location[]>([]);
-  const [notice, setNotice] = useState("Klar");
-  const [pageLoading, setPageLoading] = useState(true);
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [token, setToken] = useState("");
-  const [user, setUser] = useState<User>();
+  const { notice, pageLoading, setNotice, setUser, token, user } = useCurrentUser();
 
   useEffect(() => {
-    return afterRender(() => {
-      async function loadPage() {
-        const savedToken = readToken();
+    if (!user) return;
 
-        if (!savedToken) {
-          router.replace(AUTH_SCREEN_ROUTES.login);
-          return;
-        }
-
-        try {
-          setNotice(takeNotice());
-          setToken(savedToken);
-          setUser(await getMe(savedToken));
-          setLocations(await getLocations());
-          setPlans(await getPlans());
-        } catch (error) {
-          clearLogin();
-          saveNotice(apiErrorMessage(error));
-          router.replace(AUTH_SCREEN_ROUTES.login);
-        } finally {
-          setPageLoading(false);
-        }
-      }
-
-      void loadPage();
-    });
-  }, [router]);
+    void Promise.all([getLocations(), getPlans()])
+      .then(([newLocations, newPlans]) => {
+        setLocations(newLocations);
+        setPlans(newPlans);
+      })
+      .catch((error) => setNotice(apiErrorMessage(error)));
+  }, [setNotice, user]);
 
   useEffect(() => {
     if (!user) return;

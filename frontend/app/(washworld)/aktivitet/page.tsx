@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { MemberPage } from "@/components/PageLayout";
-import { apiErrorMessage, getDashboard, getLocations, getMe, getWashes } from "@/lib/api";
-import { afterRender, clearLogin, readToken, saveNotice, takeNotice } from "@/lib/browserSession";
-import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { apiErrorMessage, getDashboard, getLocations, getWashes } from "@/lib/api";
 import type { Dashboard, Location, Wash } from "@/types/app";
 
 function formatWashDate(value: string) {
@@ -48,43 +46,28 @@ function ActivityChart({ data }: { data: Dashboard["washes_per_day"] }) {
 }
 
 export default function ActivityPage() {
-  const router = useRouter();
   const [dashboard, setDashboard] = useState<Dashboard>();
   const [locations, setLocations] = useState<Location[]>([]);
-  const [notice, setNotice] = useState("Klar");
-  const [pageLoading, setPageLoading] = useState(true);
   const [washes, setWashes] = useState<Wash[]>([]);
   const [showAllWashes, setShowAllWashes] = useState(false);
+  const { notice, pageLoading, setNotice, token, user } = useCurrentUser();
   const recentWashes = showAllWashes ? washes : washes.slice(0, 4);
 
   useEffect(() => {
-    return afterRender(() => {
-      async function loadPage() {
-        const token = readToken();
+    if (!user || !token) return;
 
-        if (!token) {
-          router.replace(AUTH_SCREEN_ROUTES.login);
-          return;
-        }
-
-        try {
-          setNotice(takeNotice());
-          await getMe(token);
-          setDashboard(await getDashboard());
-          setLocations(await getLocations());
-          setWashes(await getWashes(token));
-        } catch (error) {
-          clearLogin();
-          saveNotice(apiErrorMessage(error));
-          router.replace(AUTH_SCREEN_ROUTES.login);
-        } finally {
-          setPageLoading(false);
-        }
+    async function loadPageData() {
+      try {
+        setDashboard(await getDashboard());
+        setLocations(await getLocations());
+        setWashes(await getWashes(token));
+      } catch (error) {
+        setNotice(apiErrorMessage(error));
       }
+    }
 
-      void loadPage();
-    });
-  }, [router]);
+    void loadPageData();
+  }, [setNotice, token, user]);
 
   return (
     <MemberPage loading={pageLoading} notice={notice} title="Aktivitet">

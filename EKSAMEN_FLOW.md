@@ -29,13 +29,35 @@ database -> app.py -> api.ts -> side i frontend
 
 ## Eksempel: hjem
 
-1. `/hjem` læser token fra browseren.
-2. Hvis token mangler, sendes brugeren til login.
-3. Hvis token findes, kalder siden `/api/me`.
-4. Backend bruger token til at finde den aktuelle bruger.
-5. Backend sender brugerdata tilbage.
-6. `/hjem` viser fx `user.first_name`.
-7. `/hjem` kalder også `/api/locations` for at vise vaskehaller.
+1. `/hjem` bruger custom hooken `useCurrentUser()`.
+2. Hooken læser token fra browseren.
+3. Hvis token mangler, sendes brugeren til login.
+4. Hvis token findes, kalder hooken `/api/me`.
+5. Backend bruger token til at finde den aktuelle bruger.
+6. Backend sender brugerdata tilbage.
+7. `/hjem` viser fx `user.first_name`.
+8. `/hjem` kalder også `/api/locations` for at vise vaskehaller.
+
+## Custom hook
+
+Projektet har en custom hook i `frontend/hooks/useCurrentUser.ts`.
+
+Den bruges på sider, hvor brugeren skal være logget ind.
+
+Den gør fire ting:
+
+1. Læser token fra browseren.
+2. Kalder `/api/me` for at hente brugeren.
+3. Gemmer `user`, `token`, `notice` og `pageLoading`.
+4. Sender brugeren tilbage til login, hvis token mangler eller ikke virker.
+
+Til eksamen kan den forklares sådan:
+
+```txt
+useCurrentUser er min custom hook.
+Den samler login-tjekket, så jeg ikke skal skrive samme kode på alle medlemssider.
+Siderne kan bare bruge user, token, notice og pageLoading fra hooken.
+```
 
 ## Token forklaret simpelt
 
@@ -55,6 +77,7 @@ Backend tjekker token, før den sender private brugerdata tilbage.
 
 - `frontend/app/(washworld)/login/page.tsx`: login-siden
 - `frontend/app/(washworld)/hjem/page.tsx`: forsiden efter login
+- `frontend/hooks/useCurrentUser.ts`: custom hook til login-tjek og aktuel bruger
 - `frontend/lib/api.ts`: sender requests til backend
 - `frontend/lib/browserSession.ts`: gemmer token og beskeder i browseren
 - `backend/app.py`: Flask API og database-flow

@@ -1,46 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { MemberPage } from "@/components/PageLayout";
-import { apiErrorMessage, getMe } from "@/lib/api";
-import { afterRender, clearLogin, readToken, saveNotice, takeNotice } from "@/lib/browserSession";
-import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
-import type { User } from "@/types/app";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 export default function QrCodePage() {
-  const router = useRouter();
-  const [notice, setNotice] = useState("Klar");
-  const [pageLoading, setPageLoading] = useState(true);
-  const [user, setUser] = useState<User>();
-
-  useEffect(() => {
-    return afterRender(() => {
-      async function loadPage() {
-        const token = readToken();
-
-        if (!token) {
-          router.replace(AUTH_SCREEN_ROUTES.login);
-          return;
-        }
-
-        try {
-          setNotice(takeNotice());
-          setUser(await getMe(token));
-        } catch (error) {
-          clearLogin();
-          saveNotice(apiErrorMessage(error));
-          router.replace(AUTH_SCREEN_ROUTES.login);
-        } finally {
-          setPageLoading(false);
-        }
-      }
-
-      void loadPage();
-    });
-  }, [router]);
+  const { notice, pageLoading, user } = useCurrentUser();
 
   return (
     <MemberPage loading={pageLoading} notice={notice} title="QR kode">
