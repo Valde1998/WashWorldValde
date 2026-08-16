@@ -6,10 +6,10 @@ import { MemberPage } from "@/components/PageLayout";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 export default function QrCodePage() {
-  const { notice, pageLoading, user } = useCurrentUser();
+  const { pageLoading, user } = useCurrentUser();
 
   return (
-    <MemberPage loading={pageLoading} notice={notice} title="QR kode">
+    <MemberPage loading={pageLoading} title="QR kode">
       {user ? (
         <section className="app-screen qr-screen">
           <div className="screen-title"><p>Adgang</p><h1>Scan QR-koden</h1></div>

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
 import { apiErrorMessage, resetPassword } from "@/lib/api";
-import { afterRender, saveNotice, takeNotice } from "@/lib/browserSession";
+import { afterRender } from "@/lib/browserSession";
 import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
 import type { ResetPasswordPayload } from "@/types/app";
 
@@ -15,11 +15,9 @@ export default function ResetPasswordPage() {
   const [browserReady, setBrowserReady] = useState(false);
   const [form, setForm] = useState<ResetPasswordPayload>({ reset_key: "", password: "" });
   const [formError, setFormError] = useState("");
-  const [notice, setNotice] = useState("Klar");
 
   useEffect(() => {
     return afterRender(() => {
-      setNotice(takeNotice());
       setBrowserReady(true);
     });
   }, []);
@@ -39,11 +37,10 @@ export default function ResetPasswordPage() {
     }
 
     try {
-      const response = await resetPassword({ ...form, reset_key: form.reset_key.trim() });
-      saveNotice(response.message);
+      await resetPassword({ ...form, reset_key: form.reset_key.trim() });
       router.replace(AUTH_SCREEN_ROUTES.login);
     } catch (error) {
-      setNotice(apiErrorMessage(error));
+      setFormError(apiErrorMessage(error));
     }
   }
 
@@ -54,7 +51,6 @@ export default function ResetPasswordPage() {
         <h1>Nulstil kodeord</h1>
         <p className="screen-intro">Indtast koden fra emailen og vælg et nyt kodeord.</p>
         {formError ? <p className="form-error">{formError}</p> : null}
-        {notice !== "Klar" ? <p className="status-message">{notice}</p> : null}
         <form className="mobile-form" noValidate onSubmit={submit}>
           <label>
             Reset-kode

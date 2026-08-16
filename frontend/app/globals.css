@@ -126,9 +126,8 @@ h1, h2, h3, p { margin-top: 0; }
 }
 .mobile-form input:focus, .mobile-form select:focus, .mobile-search input:focus { border-color: var(--green-dark); outline: 2px solid rgba(66, 200, 115, 0.16); }
 .form-row { display: grid; gap: 11px; grid-template-columns: 1fr 1fr; }
-.form-error, .status-message { border-radius: 2px; font-size: 12px; font-weight: 700; line-height: 1.45; margin: 0 0 16px; padding: 10px 11px; }
+.form-error { border-radius: 2px; font-size: 12px; font-weight: 700; line-height: 1.45; margin: 0 0 16px; padding: 10px 11px; }
 .form-error { background: #fff2f1; border: 1px solid #efbdb8; color: var(--danger); }
-.status-message { background: var(--green-soft); border: 1px solid #bae5c9; color: #116b35; }
 .auth-switch { color: var(--muted); font-size: 12px; margin: 6px 0 0; text-align: center; }
 .auth-switch button { background: transparent; border: 0; color: var(--green-dark); font-weight: 700; padding: 0; }
 .payment-summary { align-items: center; background: #f2f2f2; border: 1px solid var(--line); border-radius: 2px; display: flex; justify-content: space-between; margin: 7px 0; padding: 13px; }
@@ -152,7 +151,6 @@ h1, h2, h3, p { margin-top: 0; }
 .app-header span { color: #b5b5b5; font-size: 10px; font-weight: 700; letter-spacing: 0.7px; text-transform: uppercase; }
 .app-scroll-area { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
 .app-screen { min-height: 100%; padding: 22px 18px 30px; }
-.app-notice { background: var(--green-soft); border-bottom: 1px solid #bae5c9; color: #116b35; flex: 0 0 auto; font-size: 11px; font-weight: 700; padding: 8px 18px; text-align: center; }
 .screen-title { margin-bottom: 19px; }
 
 .greeting-row { align-items: center; display: flex; justify-content: space-between; margin-bottom: 17px; }

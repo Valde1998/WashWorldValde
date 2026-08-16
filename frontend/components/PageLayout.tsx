@@ -41,10 +41,9 @@ type MemberPageProps = {
   title: string;
   children?: ReactNode;
   loading?: boolean;
-  notice?: string;
 };
 
-export function MemberPage({ title, children, loading = false, notice = "Klar" }: MemberPageProps) {
+export function MemberPage({ title, children, loading = false }: MemberPageProps) {
   const pathname = usePathname();
 
   if (loading) return <LoadingPage />;
@@ -55,7 +54,6 @@ export function MemberPage({ title, children, loading = false, notice = "Klar" }
         <Image alt="WashWorld" height={38} src="/logo.webp" width={124} priority />
         <span>{title}</span>
       </header>
-      {notice !== "Klar" ? <div className="app-notice" role="status">{notice}</div> : null}
       <div className="app-scroll-area">{children}</div>
       <nav className="bottom-navigation" aria-label="App-navigation">
         {navigation.map((item) => {

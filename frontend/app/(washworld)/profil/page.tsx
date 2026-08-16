@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { MemberPage } from "@/components/PageLayout";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { apiErrorMessage, getLocations, getPlans, updateMe } from "@/lib/api";
+import { getLocations, getPlans, updateMe } from "@/lib/api";
 import { afterRender, clearLogin } from "@/lib/browserSession";
 import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
 import type { Location, Plan, UpdateProfilePayload } from "@/types/app";
@@ -24,7 +24,7 @@ export default function ProfilePage() {
   const [form, setForm] = useState<UpdateProfilePayload>(emptyProfile);
   const [locations, setLocations] = useState<Location[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
-  const { notice, pageLoading, setNotice, setUser, token, user } = useCurrentUser();
+  const { pageLoading, setUser, token, user } = useCurrentUser();
 
   useEffect(() => {
     if (!user) return;
@@ -34,8 +34,8 @@ export default function ProfilePage() {
         setLocations(newLocations);
         setPlans(newPlans);
       })
-      .catch((error) => setNotice(apiErrorMessage(error)));
-  }, [setNotice, user]);
+      .catch(() => undefined);
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -56,9 +56,8 @@ export default function ProfilePage() {
 
     try {
       setUser(await updateMe(token, form));
-      setNotice("Profilen er gemt");
-    } catch (error) {
-      setNotice(apiErrorMessage(error));
+    } catch {
+      return;
     }
   }
 
@@ -68,7 +67,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <MemberPage loading={pageLoading} notice={notice} title="Min profil">
+    <MemberPage loading={pageLoading} title="Min profil">
       {user ? (
         <section className="app-screen profile-screen">
           <div className="profile-intro">

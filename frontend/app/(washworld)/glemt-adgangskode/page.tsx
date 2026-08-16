@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
 import { apiErrorMessage, forgotPassword } from "@/lib/api";
-import { afterRender, saveNotice, takeNotice } from "@/lib/browserSession";
+import { afterRender } from "@/lib/browserSession";
 import { isValidEmail } from "@/lib/formValidation";
 import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
 
@@ -15,11 +15,9 @@ export default function ForgotPasswordPage() {
   const [browserReady, setBrowserReady] = useState(false);
   const [email, setEmail] = useState("");
   const [formError, setFormError] = useState("");
-  const [notice, setNotice] = useState("Klar");
 
   useEffect(() => {
     return afterRender(() => {
-      setNotice(takeNotice());
       setBrowserReady(true);
     });
   }, []);
@@ -35,11 +33,10 @@ export default function ForgotPasswordPage() {
     }
 
     try {
-      const response = await forgotPassword({ email: email.trim().toLowerCase() });
-      saveNotice(response.message);
+      await forgotPassword({ email: email.trim().toLowerCase() });
       router.push(AUTH_SCREEN_ROUTES.sent);
     } catch (error) {
-      setNotice(apiErrorMessage(error));
+      setFormError(apiErrorMessage(error));
     }
   }
 
@@ -50,7 +47,6 @@ export default function ForgotPasswordPage() {
         <h1>Glemt adgangskode</h1>
         <p className="screen-intro">Indtast din email, så sender vi en reset-kode.</p>
         {formError ? <p className="form-error">{formError}</p> : null}
-        {notice !== "Klar" ? <p className="status-message">{notice}</p> : null}
         <form className="mobile-form" noValidate onSubmit={submit}>
           <label>
             Email

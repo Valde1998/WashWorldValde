@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
 import { apiErrorMessage, resendVerification, verifyEmail } from "@/lib/api";
-import { afterRender, saveLogin, takeNotice } from "@/lib/browserSession";
+import { afterRender, saveLogin } from "@/lib/browserSession";
 import { APP_TAB_ROUTES, AUTH_SCREEN_ROUTES } from "@/lib/routes";
 
 export default function VerifyEmailPage() {
@@ -13,14 +13,14 @@ export default function VerifyEmailPage() {
   const searchParams = useSearchParams();
   const automaticVerificationAttempt = useRef("");
   const [browserReady, setBrowserReady] = useState(false);
-  const [notice, setNotice] = useState("Klar");
+  const [formError, setFormError] = useState("");
 
   const verificationEmail = searchParams.get("email") || "";
   const verificationToken = searchParams.get("token") || "";
 
   const verifyUserEmail = useCallback(async () => {
     if (!verificationEmail || !verificationToken) {
-      setNotice("Bekræftelseslinket mangler email eller token.");
+      setFormError("Bekræftelseslinket mangler email eller token.");
       return;
     }
 
@@ -29,27 +29,25 @@ export default function VerifyEmailPage() {
       saveLogin(session);
       router.replace(APP_TAB_ROUTES.home);
     } catch (error) {
-      setNotice(apiErrorMessage(error));
+      setFormError(apiErrorMessage(error));
     }
   }, [router, verificationEmail, verificationToken]);
 
   async function resendUserVerification() {
     if (!verificationEmail) {
-      setNotice("Email mangler, så vi kan ikke sende et nyt link.");
+      setFormError("Email mangler, så vi kan ikke sende et nyt link.");
       return;
     }
 
     try {
-      const response = await resendVerification(verificationEmail);
-      setNotice(response.message);
+      await resendVerification(verificationEmail);
     } catch (error) {
-      setNotice(apiErrorMessage(error));
+      setFormError(apiErrorMessage(error));
     }
   }
 
   useEffect(() => {
     return afterRender(() => {
-      setNotice(takeNotice());
       setBrowserReady(true);
     });
   }, []);
@@ -80,7 +78,7 @@ export default function VerifyEmailPage() {
             <>Vi har sendt et bekræftelseslink til <strong>{verificationEmail}</strong>. Åbn linket i emailen for at fortsætte.</>
           )}
         </p>
-        {notice !== "Klar" ? <p className="status-message">{notice}</p> : null}
+        {formError ? <p className="form-error">{formError}</p> : null}
         {verificationToken ? (
           <button
             className="primary-button verification-form"

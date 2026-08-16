@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { AuthHeader, LoadingPage } from "@/components/PageLayout";
 import { apiErrorMessage, login, verificationEmailFromError } from "@/lib/api";
-import { afterRender, readToken, saveLogin, saveNotice, takeNotice } from "@/lib/browserSession";
+import { afterRender, readToken, saveLogin } from "@/lib/browserSession";
 import { isValidEmail } from "@/lib/formValidation";
 import { APP_TAB_ROUTES, AUTH_SCREEN_ROUTES } from "@/lib/routes";
 import type { LoginPayload } from "@/types/app";
@@ -16,11 +16,9 @@ export default function LoginPage() {
   const [browserReady, setBrowserReady] = useState(false);
   const [formError, setFormError] = useState("");
   const [form, setForm] = useState<LoginPayload>({ email: "", password: "" });
-  const [notice, setNotice] = useState("Klar");
 
   useEffect(() => {
     return afterRender(() => {
-      setNotice(takeNotice());
       if (readToken()) router.replace(APP_TAB_ROUTES.home);
       setBrowserReady(true);
     });
@@ -47,12 +45,11 @@ export default function LoginPage() {
     } catch (error) {
       const verificationEmail = verificationEmailFromError(error);
       if (verificationEmail) {
-        saveNotice(apiErrorMessage(error));
         router.push(`${AUTH_SCREEN_ROUTES.verify}?email=${encodeURIComponent(verificationEmail)}`);
         return;
       }
 
-      setNotice(apiErrorMessage(error));
+      setFormError(apiErrorMessage(error));
     }
   }
 
@@ -63,7 +60,6 @@ export default function LoginPage() {
         <h1>Log ind</h1>
         <p className="screen-intro">Log ind for at se dit medlemskab og dine seneste vaske.</p>
         {formError ? <p className="form-error">{formError}</p> : null}
-        {notice !== "Klar" ? <p className="status-message">{notice}</p> : null}
         <form className="mobile-form" noValidate onSubmit={submit}>
           <label>
             Email

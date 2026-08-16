@@ -14,7 +14,6 @@ export const EMPTY_SIGNUP: SignupDraft = {
 };
 
 const TOKEN_KEY = "washworld_token";
-const NOTICE_KEY = "washworld_notice";
 const SIGNUP_KEY = "washworld_signup";
 
 export function afterRender(action: () => void) {
@@ -28,21 +27,10 @@ export function readToken() {
 
 export function saveLogin(session: Session) {
   window.localStorage.setItem(TOKEN_KEY, session.token);
-  saveNotice("Du er logget ind");
 }
 
 export function clearLogin() {
   window.localStorage.removeItem(TOKEN_KEY);
-}
-
-export function saveNotice(message: string) {
-  window.sessionStorage.setItem(NOTICE_KEY, message);
-}
-
-export function takeNotice() {
-  const message = window.sessionStorage.getItem(NOTICE_KEY);
-  if (message) window.sessionStorage.removeItem(NOTICE_KEY);
-  return message ?? "Klar";
 }
 
 export function readSignupDraft() {

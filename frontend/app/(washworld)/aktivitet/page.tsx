@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { MemberPage } from "@/components/PageLayout";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { apiErrorMessage, getDashboard, getLocations, getWashes } from "@/lib/api";
+import { getDashboard, getLocations, getWashes } from "@/lib/api";
 import type { Dashboard, Location, Wash } from "@/types/app";
 
 function formatWashDate(value: string) {
@@ -50,7 +50,7 @@ export default function ActivityPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [washes, setWashes] = useState<Wash[]>([]);
   const [showAllWashes, setShowAllWashes] = useState(false);
-  const { notice, pageLoading, setNotice, token, user } = useCurrentUser();
+  const { pageLoading, token, user } = useCurrentUser();
   const recentWashes = showAllWashes ? washes : washes.slice(0, 4);
 
   useEffect(() => {
@@ -61,16 +61,16 @@ export default function ActivityPage() {
         setDashboard(await getDashboard());
         setLocations(await getLocations());
         setWashes(await getWashes(token));
-      } catch (error) {
-        setNotice(apiErrorMessage(error));
+      } catch {
+        return;
       }
     }
 
     void loadPageData();
-  }, [setNotice, token, user]);
+  }, [token, user]);
 
   return (
-    <MemberPage loading={pageLoading} notice={notice} title="Aktivitet">
+    <MemberPage loading={pageLoading} title="Aktivitet">
       <section className="app-screen activity-screen">
         <div className="screen-title">
           <p>Dit overblik</p>

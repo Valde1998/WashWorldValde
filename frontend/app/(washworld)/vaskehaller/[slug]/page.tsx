@@ -7,14 +7,14 @@ import { useParams } from "next/navigation";
 
 import { MemberPage } from "@/components/PageLayout";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { apiErrorMessage, createWash, getLocations } from "@/lib/api";
+import { createWash, getLocations } from "@/lib/api";
 import { APP_TAB_ROUTES } from "@/lib/routes";
 import type { Location } from "@/types/app";
 
 export default function LocationPage() {
   const { slug } = useParams<{ slug: string }>();
   const [locations, setLocations] = useState<Location[]>([]);
-  const { notice, pageLoading, setNotice, token, user } = useCurrentUser();
+  const { pageLoading, token, user } = useCurrentUser();
   const location = locations.find((item) => item.slug === slug);
 
   useEffect(() => {
@@ -22,22 +22,21 @@ export default function LocationPage() {
 
     void getLocations()
       .then(setLocations)
-      .catch((error) => setNotice(apiErrorMessage(error)));
-  }, [setNotice, user]);
+      .catch(() => undefined);
+  }, [user]);
 
   async function registerWash(locationId: number, washType: string) {
     if (!token) return;
 
     try {
       await createWash(token, locationId, washType);
-      setNotice("Vasken er registreret");
-    } catch (error) {
-      setNotice(apiErrorMessage(error));
+    } catch {
+      return;
     }
   }
 
   return (
-    <MemberPage loading={pageLoading} notice={notice} title="Vaskehal">
+    <MemberPage loading={pageLoading} title="Vaskehal">
       {location ? (
         <section className="location-detail-screen">
           <div className="location-hero">

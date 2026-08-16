@@ -3,14 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { apiErrorMessage, getMe } from "@/lib/api";
-import { afterRender, clearLogin, readToken, saveNotice, takeNotice } from "@/lib/browserSession";
+import { getMe } from "@/lib/api";
+import { afterRender, clearLogin, readToken } from "@/lib/browserSession";
 import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
 import type { User } from "@/types/app";
 
 export function useCurrentUser() {
   const router = useRouter();
-  const [notice, setNotice] = useState("Klar");
   const [pageLoading, setPageLoading] = useState(true);
   const [token, setToken] = useState("");
   const [user, setUser] = useState<User>();
@@ -26,12 +25,10 @@ export function useCurrentUser() {
         }
 
         try {
-          setNotice(takeNotice());
           setToken(savedToken);
           setUser(await getMe(savedToken));
-        } catch (error) {
+        } catch {
           clearLogin();
-          saveNotice(apiErrorMessage(error));
           router.replace(AUTH_SCREEN_ROUTES.login);
         } finally {
           setPageLoading(false);
@@ -42,5 +39,5 @@ export function useCurrentUser() {
     });
   }, [router]);
 
-  return { notice, pageLoading, setNotice, setUser, token, user };
+  return { pageLoading, setUser, token, user };
 }

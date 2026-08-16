@@ -6,23 +6,23 @@ import { useEffect, useState } from "react";
 
 import { MemberPage } from "@/components/PageLayout";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { apiErrorMessage, getLocations } from "@/lib/api";
+import { getLocations } from "@/lib/api";
 import { APP_TAB_ROUTES } from "@/lib/routes";
 import type { Location } from "@/types/app";
 
 export default function HomePage() {
   const [locations, setLocations] = useState<Location[]>([]);
-  const { notice, pageLoading, setNotice, user } = useCurrentUser();
+  const { pageLoading, user } = useCurrentUser();
 
   useEffect(() => {
     if (!user) return;
 
     void getLocations()
       .then(setLocations)
-      .catch((error) => setNotice(apiErrorMessage(error)));
-  }, [setNotice, user]);
+      .catch(() => undefined);
+  }, [user]);
 
-  if (!user) return <MemberPage loading={pageLoading} notice={notice} title="Hjem" />;
+  if (!user) return <MemberPage loading={pageLoading} title="Hjem" />;
 
   const preferredLocation = locations.find((location) => location.location_id === user.location_id);
   const homeLocations = [
@@ -33,7 +33,7 @@ export default function HomePage() {
     .slice(0, 3);
 
   return (
-    <MemberPage loading={pageLoading} notice={notice} title="Hjem">
+    <MemberPage loading={pageLoading} title="Hjem">
       <section className="app-screen home-screen">
         <div className="greeting-row">
           <div>

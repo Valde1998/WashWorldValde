@@ -11,8 +11,6 @@ import {
   EMPTY_SIGNUP,
   clearSignupDraft,
   readSignupDraft,
-  saveNotice,
-  takeNotice,
   type SignupDraft,
 } from "@/lib/browserSession";
 import { AUTH_SCREEN_ROUTES } from "@/lib/routes";
@@ -22,7 +20,6 @@ export default function PaymentPage() {
   const router = useRouter();
   const [browserReady, setBrowserReady] = useState(false);
   const [formError, setFormError] = useState("");
-  const [notice, setNotice] = useState("Klar");
   const [plans, setPlans] = useState<Plan[]>([]);
   const [signupForm, setSignupForm] = useState<SignupDraft>(EMPTY_SIGNUP);
   const [card, setCard] = useState("");
@@ -31,9 +28,8 @@ export default function PaymentPage() {
 
   useEffect(() => {
     return afterRender(() => {
-      setNotice(takeNotice());
       setSignupForm(readSignupDraft());
-      void getPlans().then(setPlans).catch((error) => setNotice(apiErrorMessage(error)));
+      void getPlans().then(setPlans).catch((error) => setFormError(apiErrorMessage(error)));
       setBrowserReady(true);
     });
   }, []);
@@ -67,17 +63,15 @@ export default function PaymentPage() {
         plan_id: signupForm.plan_id,
       });
       clearSignupDraft();
-      saveNotice(response.message);
       router.push(`${AUTH_SCREEN_ROUTES.verify}?email=${encodeURIComponent(response.email)}`);
     } catch (error) {
       const verificationEmail = verificationEmailFromError(error);
       if (verificationEmail) {
-        saveNotice(apiErrorMessage(error));
         router.push(`${AUTH_SCREEN_ROUTES.verify}?email=${encodeURIComponent(verificationEmail)}`);
         return;
       }
 
-      setNotice(apiErrorMessage(error));
+      setFormError(apiErrorMessage(error));
     }
   }
 
@@ -89,7 +83,6 @@ export default function PaymentPage() {
         <h1>Opdater dit betalingskort</h1>
         <p className="screen-intro">Kortoplysningerne bliver ikke gemt.</p>
         {formError ? <p className="form-error">{formError}</p> : null}
-        {notice !== "Klar" ? <p className="status-message">{notice}</p> : null}
         <form className="mobile-form" noValidate onSubmit={submit}>
           <label>
             Kortnummer

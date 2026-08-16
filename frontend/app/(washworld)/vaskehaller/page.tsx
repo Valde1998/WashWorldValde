@@ -6,14 +6,14 @@ import { useEffect, useState } from "react";
 
 import { MemberPage } from "@/components/PageLayout";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { apiErrorMessage, getLocations } from "@/lib/api";
+import { getLocations } from "@/lib/api";
 import { APP_TAB_ROUTES } from "@/lib/routes";
 import type { Location } from "@/types/app";
 
 export default function LocationsPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [locationSearch, setLocationSearch] = useState("");
-  const { notice, pageLoading, setNotice, user } = useCurrentUser();
+  const { pageLoading, user } = useCurrentUser();
   const search = locationSearch.trim().toLowerCase();
   const filteredLocations = search
     ? locations.filter((location) =>
@@ -28,11 +28,11 @@ export default function LocationsPage() {
 
     void getLocations()
       .then(setLocations)
-      .catch((error) => setNotice(apiErrorMessage(error)));
-  }, [setNotice, user]);
+      .catch(() => undefined);
+  }, [user]);
 
   return (
-    <MemberPage loading={pageLoading} notice={notice} title="Find vaskehal">
+    <MemberPage loading={pageLoading} title="Find vaskehal">
       <section className="app-screen locations-screen">
         <div className="screen-title"><p>I nærheden</p><h1>Find vaskehal</h1></div>
         <label className="mobile-search">
